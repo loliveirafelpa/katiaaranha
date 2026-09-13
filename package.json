@@ -1,0 +1,36 @@
+{
+  "name": "katia-aranha",
+  "version": "1.0.0",
+  "description": "Sistema de diario miccional digital - CPA Fisioterapia / Dra. Katia Aranha",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loliveirafelpa/katiaaranha.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/loliveirafelpa/katiaaranha/issues"
+  },
+  "homepage": "https://github.com/loliveirafelpa/katiaaranha#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "lucide-react": "^1.45.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.0"
+  }
+}
