@@ -9,6 +9,7 @@ import {
   calcularResumoPorDia,
   calcularBalancoHidrico,
   calcularPerdasPorAtividade,
+  calcularCorrelacaoPerdaAtividade,
   calcularNocturia,
 } from '../../../lib/indicadoresCalculo'
 import TabelaDiariaEstiloPapel from '../../../components/TabelaDiariaEstiloPapel'
@@ -33,12 +34,80 @@ function Barra({ label, valor, maximo }) {
   const percentual = maximo > 0 ? (valor / maximo) * 100 : 0
   return (
     <div className="flex items-center gap-3 text-sm mb-1.5">
-      <span className="w-24 shrink-0" style={{ color: colors.textSecondary }}>{label}</span>
+      <span className="w-36 shrink-0" style={{ color: colors.textSecondary }}>{label}</span>
       <div className="flex-1 h-3 rounded-full" style={{ background: colors.border }}>
         <div className="h-3 rounded-full" style={{ width: `${percentual}%`, background: colors.primary }} />
       </div>
       <span className="w-6 text-right text-xs" style={{ color: colors.textSecondary }}>{valor}</span>
     </div>
+  )
+}
+
+function CardDestaque({ valor, label }) {
+  return (
+    <div
+      className="rounded-xl p-4 text-center border-t-4"
+      style={{ background: colors.surface, borderColor: colors.border, borderTopColor: colors.primary }}
+    >
+      <p className="text-3xl font-semibold" style={{ color: colors.secondary }}>{valor}</p>
+      <p className="text-xs mt-1" style={{ color: colors.textSecondary }}>{label}</p>
+    </div>
+  )
+}
+
+const SEVERIDADE_COR = { pequena: colors.success, moderada: colors.warning, intensa: colors.danger }
+const SEVERIDADE_LABEL = { pequena: 'Leve', moderada: 'Moderada', intensa: 'Intensa' }
+
+function LegendaSeveridade() {
+  return (
+    <div className="flex flex-wrap gap-4 mb-3 text-xs" style={{ color: colors.textSecondary }}>
+      {Object.entries(SEVERIDADE_LABEL).map(([chave, label]) => (
+        <span key={chave} className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: SEVERIDADE_COR[chave] }} />
+          {label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function BarraSeveridadeDia({ diaNumero, contagem, maximo }) {
+  const total = contagem.pequena + contagem.moderada + contagem.intensa
+  return (
+    <div className="flex items-center gap-3 text-sm mb-1.5">
+      <span className="w-16 shrink-0" style={{ color: colors.textSecondary }}>Dia {diaNumero}</span>
+      <div className="flex-1 h-5 rounded-full overflow-hidden flex" style={{ background: colors.border }}>
+        {total > 0 && ['pequena', 'moderada', 'intensa'].map((chave) => (
+          contagem[chave] > 0 && (
+            <div
+              key={chave}
+              className="h-5 flex items-center justify-center text-[10px] font-semibold text-white"
+              style={{ width: `${(contagem[chave] / maximo) * 100}%`, background: SEVERIDADE_COR[chave] }}
+            >
+              {contagem[chave]}
+            </div>
+          )
+        ))}
+      </div>
+      <span className="w-6 text-right text-xs" style={{ color: colors.textSecondary }}>{total}</span>
+    </div>
+  )
+}
+
+function hexParaRgba(hex, alpha) {
+  const valor = hex.replace('#', '')
+  const r = parseInt(valor.substring(0, 2), 16)
+  const g = parseInt(valor.substring(2, 4), 16)
+  const b = parseInt(valor.substring(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+function CelulaCalor({ valor, maximo, cor }) {
+  const alpha = valor > 0 ? 0.15 + 0.55 * (valor / maximo) : 0
+  return (
+    <td className="py-1.5 px-2 text-center font-medium" style={{ background: hexParaRgba(cor, alpha), color: colors.text }}>
+      {valor > 0 ? valor : '—'}
+    </td>
   )
 }
 
@@ -53,11 +122,12 @@ export default function PacienteDetalhePage() {
   const [observacoes, setObservacoes] = useState([])
   const [notas, setNotas] = useState([])
   const [aba, setAba] = useState('diario')
+  const [ordenacaoDiario, setOrdenacaoDiario] = useState('horario')
   const [carregando, setCarregando] = useState(true)
 
-  const [novaDuracao, setNovaDuracao] = useState(5)
   const [novaDataInicio, setNovaDataInicio] = useState(() => new Date().toISOString().slice(0, 10))
   const [criandoCiclo, setCriandoCiclo] = useState(false)
+  const [erroCiclo, setErroCiclo] = useState('')
 
   const carregarBase = useCallback(async () => {
     setCarregando(true)
@@ -98,15 +168,30 @@ export default function PacienteDetalhePage() {
 
   async function handleCriarCiclo(e) {
     e.preventDefault()
+    setErroCiclo('')
+
+    // Ciclos ja vem ordenados por data_inicio desc, entao ciclos[0] e o mais recente.
+    const maisRecente = ciclos[0]
+    if (maisRecente && novaDataInicio <= maisRecente.dataInicio) {
+      const dataFormatada = new Date(`${maisRecente.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')
+      setErroCiclo(`Já existe um ciclo deste paciente começando em ${dataFormatada}. O novo ciclo precisa começar depois dessa data.`)
+      return
+    }
+
     setCriandoCiclo(true)
     try {
       await criarCiclo({
         pacienteId: id,
-        duracaoDias: Number(novaDuracao),
         dataInicio: novaDataInicio,
         criadoPor: perfil.id,
       })
       await carregarBase()
+    } catch (err) {
+      if (err.message?.includes('ciclo_data_inicio_conflitante')) {
+        setErroCiclo('Já existe um ciclo deste paciente começando nessa data ou depois dela. O novo ciclo precisa começar depois do ciclo mais recente.')
+      } else {
+        setErroCiclo(err.message || 'Não foi possível criar o ciclo. Tente novamente.')
+      }
     } finally {
       setCriandoCiclo(false)
     }
@@ -139,9 +224,24 @@ export default function PacienteDetalhePage() {
 
   const resumoPorDia = calcularResumoPorDia(entradas)
   const balanco = calcularBalancoHidrico(entradas)
-  const perdasPorAtividade = calcularPerdasPorAtividade(entradas)
+  const { contagem: perdasContagem, outros: perdasOutros } = calcularPerdasPorAtividade(entradas)
   const nocturia = calcularNocturia(entradas)
-  const maxPerdas = Math.max(1, ...Object.values(perdasPorAtividade))
+  const maxPerdas = Math.max(1, ...Object.values(perdasContagem), ...perdasOutros.map((o) => o.quantidade))
+  const totalPerdasPorAtividade = Object.values(perdasContagem).reduce((a, b) => a + b, 0) + perdasOutros.reduce((a, o) => a + o.quantidade, 0)
+
+  const totalLiquidoIngeridoMl = entradas.reduce((soma, e) => soma + (e.tipoEvento === 'liquido' ? (e.liquidoMl || 0) : 0), 0)
+  const totalRegistrosUrina = entradas.filter((e) => e.tipoEvento === 'urinario').length
+  const totalEpisodiosPerda = entradas.filter((e) => e.tipoEvento === 'perda').length
+  const maxUrgenciaPorDia = Math.max(
+    1,
+    ...resumoPorDia.map((r) => r.contagemUrgencia.pequena + r.contagemUrgencia.moderada + r.contagemUrgencia.intensa)
+  )
+
+  const correlacaoPerdaAtividade = calcularCorrelacaoPerdaAtividade(entradas)
+  const maxCorrelacao = Math.max(
+    1,
+    ...correlacaoPerdaAtividade.flatMap((l) => [l.contagem.pequena, l.contagem.moderada, l.contagem.intensa])
+  )
 
   return (
     <div className="space-y-5">
@@ -154,7 +254,7 @@ export default function PacienteDetalhePage() {
             {paciente.contato ? ` · ${paciente.contato}` : ''}
           </p>
         </div>
-        {cicloSelecionado && <StatusCicloBadge status={status} diaAtual={diaAtual} duracaoDias={cicloSelecionado.duracaoDias} />}
+        {cicloSelecionado && <StatusCicloBadge status={status} diaAtual={diaAtual} />}
       </div>
 
       {ciclos.length > 1 && (
@@ -166,7 +266,7 @@ export default function PacienteDetalhePage() {
         >
           {ciclos.map((c) => (
             <option key={c.id} value={c.id}>
-              Ciclo iniciado em {new Date(`${c.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')} ({c.duracaoDias} dias)
+              Ciclo iniciado em {new Date(`${c.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')}
             </option>
           ))}
         </select>
@@ -193,29 +293,41 @@ export default function PacienteDetalhePage() {
       ) : (
         <>
           {aba === 'diario' && (
-            <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-              <TabelaDiariaEstiloPapel entradas={entradas} />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm justify-end">
+                <span style={{ color: colors.textSecondary }}>Ordenar por:</span>
+                {[
+                  { valor: 'horario', label: 'Horário' },
+                  { valor: 'tipo', label: 'Tipo' },
+                ].map((opcao) => (
+                  <button
+                    key={opcao.valor}
+                    onClick={() => setOrdenacaoDiario(opcao.valor)}
+                    className="px-3 py-1.5 rounded-full border font-medium"
+                    style={{
+                      borderColor: ordenacaoDiario === opcao.valor ? colors.primary : colors.border,
+                      background: ordenacaoDiario === opcao.valor ? colors.primary : colors.surface,
+                      color: ordenacaoDiario === opcao.valor ? '#fff' : colors.text,
+                    }}
+                  >
+                    {opcao.label}
+                  </button>
+                ))}
+              </div>
+              <TabelaDiariaEstiloPapel entradas={entradas} ordenacao={ordenacaoDiario} />
             </div>
           )}
 
           {aba === 'graficos' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="rounded-xl p-4 text-center" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-                  <p className="text-2xl font-semibold" style={{ color: colors.secondary }}>{nocturia.total}</p>
-                  <p className="text-xs" style={{ color: colors.textSecondary }}>Idas noturnas (noctúria)</p>
-                </div>
-                <div className="rounded-xl p-4 text-center" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-                  <p className="text-2xl font-semibold" style={{ color: colors.secondary }}>{entradas.length}</p>
-                  <p className="text-xs" style={{ color: colors.textSecondary }}>Registros totais</p>
-                </div>
-                <div className="rounded-xl p-4 text-center" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-                  <p className="text-2xl font-semibold" style={{ color: colors.secondary }}>
-                    {entradas.filter((e) => e.tipoEvento === 'perda').length}
-                  </p>
-                  <p className="text-xs" style={{ color: colors.textSecondary }}>Episódios de perda</p>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <CardDestaque valor={`${totalLiquidoIngeridoMl} ml`} label="Total de líquido ingerido" />
+                <CardDestaque valor={totalRegistrosUrina} label="Total de registros de urina" />
+                <CardDestaque valor={totalEpisodiosPerda} label="Episódios de perda" />
               </div>
+              <p className="text-xs -mt-3" style={{ color: colors.textSecondary }}>
+                Noctúria: {nocturia.total} {nocturia.total === 1 ? 'ida noturna registrada' : 'idas noturnas registradas'}
+              </p>
 
               <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
                 <h3 className="font-medium mb-3" style={{ color: colors.secondary }}>Balanço hídrico por dia (ml)</h3>
@@ -246,20 +358,29 @@ export default function PacienteDetalhePage() {
               </div>
 
               <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-                <h3 className="font-medium mb-3" style={{ color: colors.secondary }}>Perdas por atividade</h3>
-                {Object.values(perdasPorAtividade).every((v) => v === 0) ? (
-                  <p className="text-sm" style={{ color: colors.textSecondary }}>Nenhum episódio de perda registrado.</p>
+                <h3 className="font-medium mb-1" style={{ color: colors.secondary }}>Urgência por dia</h3>
+                <p className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+                  Intensidade das urgências relatadas em cada dia, por gravidade
+                </p>
+                {resumoPorDia.length === 0 ? (
+                  <p className="text-sm" style={{ color: colors.textSecondary }}>Sem dados ainda.</p>
                 ) : (
-                  Object.entries(perdasPorAtividade)
-                    .filter(([, valor]) => valor > 0)
-                    .map(([categoria, valor]) => (
-                      <Barra key={categoria} label={LABEL_ATIVIDADE[categoria]} valor={valor} maximo={maxPerdas} />
-                    ))
+                  <>
+                    <LegendaSeveridade />
+                    {resumoPorDia.map((r) => (
+                      <BarraSeveridadeDia
+                        key={r.diaNumero}
+                        diaNumero={r.diaNumero}
+                        contagem={r.contagemUrgencia}
+                        maximo={maxUrgenciaPorDia}
+                      />
+                    ))}
+                  </>
                 )}
               </div>
 
               <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-                <h3 className="font-medium mb-3" style={{ color: colors.secondary }}>Urgência e perda por dia</h3>
+                <h3 className="font-medium mb-3" style={{ color: colors.secondary }}>Balanço de perdas por dia</h3>
                 {resumoPorDia.length === 0 ? (
                   <p className="text-sm" style={{ color: colors.textSecondary }}>Sem dados ainda.</p>
                 ) : (
@@ -267,20 +388,76 @@ export default function PacienteDetalhePage() {
                     <thead>
                       <tr style={{ color: colors.textSecondary }}>
                         <th className="text-left font-normal py-1">Dia</th>
-                        <th className="text-left font-normal py-1">Urgência (P/M/I)</th>
-                        <th className="text-left font-normal py-1">Perda (P/M/I)</th>
+                        <th className="text-left font-normal py-1">Leve</th>
+                        <th className="text-left font-normal py-1">Moderada</th>
+                        <th className="text-left font-normal py-1">Intensa</th>
+                        <th className="text-left font-normal py-1">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {resumoPorDia.map((r) => (
                         <tr key={r.diaNumero} className="border-t" style={{ borderColor: colors.border }}>
                           <td className="py-1">Dia {r.diaNumero}</td>
-                          <td className="py-1">
-                            {r.contagemUrgencia.pequena}/{r.contagemUrgencia.moderada}/{r.contagemUrgencia.intensa}
+                          <td className="py-1">{r.contagemPerda.pequena}</td>
+                          <td className="py-1">{r.contagemPerda.moderada}</td>
+                          <td className="py-1">{r.contagemPerda.intensa}</td>
+                          <td className="py-1 font-medium">
+                            {r.contagemPerda.pequena + r.contagemPerda.moderada + r.contagemPerda.intensa}
                           </td>
-                          <td className="py-1">
-                            {r.contagemPerda.pequena}/{r.contagemPerda.moderada}/{r.contagemPerda.intensa}
-                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
+                <h3 className="font-medium mb-3" style={{ color: colors.secondary }}>Perdas por atividade</h3>
+                {totalPerdasPorAtividade === 0 ? (
+                  <p className="text-sm" style={{ color: colors.textSecondary }}>Nenhum episódio de perda registrado.</p>
+                ) : (
+                  <>
+                    {Object.entries(perdasContagem)
+                      .filter(([, valor]) => valor > 0)
+                      .map(([categoria, valor]) => (
+                        <Barra key={categoria} label={LABEL_ATIVIDADE[categoria]} valor={valor} maximo={maxPerdas} />
+                      ))}
+                    {perdasOutros.map((o) => (
+                      <Barra key={o.texto} label={o.texto} valor={o.quantidade} maximo={maxPerdas} />
+                    ))}
+                  </>
+                )}
+              </div>
+
+              <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
+                <h3 className="font-medium mb-1" style={{ color: colors.secondary }}>Perda x atividade, por intensidade</h3>
+                <p className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+                  Cor mais forte = mais episódios naquela combinação. Ajuda a ver se uma atividade específica
+                  puxa mais para perda leve, moderada ou intensa.
+                </p>
+                {correlacaoPerdaAtividade.length === 0 ? (
+                  <p className="text-sm" style={{ color: colors.textSecondary }}>
+                    Nenhum episódio de perda com atividade registrada ainda.
+                  </p>
+                ) : (
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr style={{ color: colors.textSecondary }}>
+                        <th className="text-left font-normal py-1">Atividade</th>
+                        <th className="text-center font-normal py-1">Leve</th>
+                        <th className="text-center font-normal py-1">Moderada</th>
+                        <th className="text-center font-normal py-1">Intensa</th>
+                        <th className="text-center font-normal py-1">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {correlacaoPerdaAtividade.map((linha) => (
+                        <tr key={linha.atividade} className="border-t" style={{ borderColor: colors.border }}>
+                          <td className="py-1.5 pr-2">{LABEL_ATIVIDADE[linha.atividade] || linha.atividade}</td>
+                          <CelulaCalor valor={linha.contagem.pequena} maximo={maxCorrelacao} cor={colors.success} />
+                          <CelulaCalor valor={linha.contagem.moderada} maximo={maxCorrelacao} cor={colors.warning} />
+                          <CelulaCalor valor={linha.contagem.intensa} maximo={maxCorrelacao} cor={colors.danger} />
+                          <td className="py-1.5 text-center font-medium">{linha.total}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -345,7 +522,7 @@ export default function PacienteDetalhePage() {
               <ul className="space-y-2">
                 {ciclos.map((c) => (
                   <li key={c.id} className="rounded-xl p-3 text-sm" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-                    Início em {new Date(`${c.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')} · {c.duracaoDias} dias
+                    Início em {new Date(`${c.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')}
                   </li>
                 ))}
               </ul>
@@ -356,29 +533,21 @@ export default function PacienteDetalhePage() {
                 style={{ background: colors.surface, border: `1px solid ${colors.border}` }}
               >
                 <h3 className="font-medium" style={{ color: colors.secondary }}>Iniciar novo ciclo</h3>
-                <div className="flex flex-wrap gap-3">
-                  <div>
-                    <label className="block text-xs mb-1" style={{ color: colors.textSecondary }}>Duração (dias)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={novaDuracao}
-                      onChange={(e) => setNovaDuracao(e.target.value)}
-                      className="px-3 py-2 rounded-lg border text-sm w-28"
-                      style={{ borderColor: colors.border }}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs mb-1" style={{ color: colors.textSecondary }}>Data de início</label>
-                    <input
-                      type="date"
-                      value={novaDataInicio}
-                      onChange={(e) => setNovaDataInicio(e.target.value)}
-                      className="px-3 py-2 rounded-lg border text-sm"
-                      style={{ borderColor: colors.border }}
-                    />
-                  </div>
+                <p className="text-xs" style={{ color: colors.textSecondary }}>
+                  O paciente registra livremente, sem uma quantidade fixa de dias.
+                </p>
+                <div>
+                  <label className="block text-xs mb-1" style={{ color: colors.textSecondary }}>Data de início</label>
+                  <input
+                    type="date"
+                    value={novaDataInicio}
+                    onChange={(e) => setNovaDataInicio(e.target.value)}
+                    min={ciclos[0] ? new Date(new Date(`${ciclos[0].dataInicio}T00:00:00`).getTime() + 86400000).toISOString().slice(0, 10) : undefined}
+                    className="px-3 py-2 rounded-lg border text-sm"
+                    style={{ borderColor: colors.border }}
+                  />
                 </div>
+                {erroCiclo && <p className="text-sm" style={{ color: colors.danger }}>{erroCiclo}</p>}
                 <button
                   type="submit"
                   disabled={criandoCiclo}

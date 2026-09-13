@@ -50,14 +50,60 @@ export function calcularBalancoHidrico(entradas) {
   }))
 }
 
+// Para categorias fixas devolve a contagem simples. Para "outro", em vez de somar tudo
+// num unico total generico, agrupa por texto que o paciente escreveu - e isso que da
+// informacao clinica de verdade (ex.: "ao rir" x2 e diferente de "carregando peso" x1).
 export function calcularPerdasPorAtividade(entradas) {
-  const contagem = Object.fromEntries(ATIVIDADES_PERDA.map((a) => [a.valor, 0]))
+  const contagem = Object.fromEntries(
+    ATIVIDADES_PERDA.filter((a) => a.valor !== 'outro').map((a) => [a.valor, 0])
+  )
+  const outrosPorTexto = new Map()
+
   for (const e of entradas) {
-    if (e.tipoEvento === 'perda' && e.perdaAtividadeCategoria) {
+    if (e.tipoEvento !== 'perda' || !e.perdaAtividadeCategoria) continue
+
+    if (e.perdaAtividadeCategoria === 'outro') {
+      const texto = e.perdaAtividadeDetalhe?.trim() || 'Outro (sem detalhe)'
+      outrosPorTexto.set(texto, (outrosPorTexto.get(texto) || 0) + 1)
+    } else {
       contagem[e.perdaAtividadeCategoria] = (contagem[e.perdaAtividadeCategoria] || 0) + 1
     }
   }
-  return contagem
+
+  const outros = [...outrosPorTexto.entries()]
+    .map(([texto, quantidade]) => ({ texto, quantidade }))
+    .sort((a, b) => b.quantidade - a.quantidade)
+
+  return { contagem, outros }
+}
+
+// Cruza intensidade da perda (leve/moderada/intensa) com a atividade associada -
+// e essa combinacao que mostra, por exemplo, se perda leve puxa mais para "ao se sentar"
+// e perda moderada puxa mais para "tosse". Mesma regra do "outro" de calcularPerdasPorAtividade:
+// agrupa pelo texto que o paciente escreveu, em vez de um bucket generico.
+export function calcularCorrelacaoPerdaAtividade(entradas) {
+  const porAtividade = new Map()
+
+  for (const e of entradas) {
+    if (e.tipoEvento !== 'perda' || !e.perda || !e.perdaAtividadeCategoria) continue
+
+    const chave = e.perdaAtividadeCategoria === 'outro'
+      ? (e.perdaAtividadeDetalhe?.trim() || 'Outro (sem detalhe)')
+      : e.perdaAtividadeCategoria
+
+    if (!porAtividade.has(chave)) {
+      porAtividade.set(chave, { pequena: 0, moderada: 0, intensa: 0 })
+    }
+    porAtividade.get(chave)[e.perda] += 1
+  }
+
+  return [...porAtividade.entries()]
+    .map(([atividade, contagem]) => ({
+      atividade,
+      contagem,
+      total: contagem.pequena + contagem.moderada + contagem.intensa,
+    }))
+    .sort((a, b) => b.total - a.total)
 }
 
 // Conta idas ao banheiro (volume urinado > 0) cuja hora local cai numa janela noturna
