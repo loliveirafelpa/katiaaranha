@@ -26,11 +26,11 @@ export function calcularResumoPorDia(entradas) {
     const totalVolumeUrinadoMl = doDia.reduce((soma, e) => soma + (e.volumeUrinadoMl || 0), 0)
 
     const contagemUrgencia = { pequena: 0, moderada: 0, intensa: 0 }
-    const contagemPerda = { sem_perda: 0, pequena: 0, moderada: 0, intensa: 0 }
+    const contagemPerda = { pequena: 0, moderada: 0, intensa: 0 }
 
     for (const e of doDia) {
       if (e.urgencia) contagemUrgencia[e.urgencia] += 1
-      contagemPerda[e.perda] += 1
+      if (e.tipoEvento === 'perda' && e.perda) contagemPerda[e.perda] += 1
     }
 
     return {
@@ -56,7 +56,7 @@ export function calcularBalancoHidrico(entradas) {
 export function calcularPerdasPorAtividade(entradas) {
   const contagem = Object.fromEntries(CATEGORIAS_ATIVIDADE.map((c) => [c, 0]))
   for (const e of entradas) {
-    if (e.perda !== 'sem_perda' && e.perdaAtividadeCategoria) {
+    if (e.tipoEvento === 'perda' && e.perdaAtividadeCategoria) {
       contagem[e.perdaAtividadeCategoria] = (contagem[e.perdaAtividadeCategoria] || 0) + 1
     }
   }

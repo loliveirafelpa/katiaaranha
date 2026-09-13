@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { listarPacientes } from '../../../lib/perfisApi'
 import { obterCicloAtivo, calcularDiaAtual, calcularStatusCiclo } from '../../../lib/ciclosDiarioApi'
 import StatusCicloBadge from '../../../components/StatusCicloBadge'
+import { labelServico } from '../../../data/servicos'
 import { colors } from '../../../theme'
 
 const LABEL_UNIDADE = { campinas: 'Campinas', jundiai: 'Jundiaí' }
@@ -85,6 +86,7 @@ export default function PacientesListaPage() {
                   <p className="font-medium">{p.nomeCompleto}</p>
                   <p className="text-xs" style={{ color: colors.textSecondary }}>
                     {p.unidade ? LABEL_UNIDADE[p.unidade] : 'Sem unidade'}
+                    {labelServico(p) ? ` · ${labelServico(p)}` : ''}
                     {p.contato ? ` · ${p.contato}` : ''}
                   </p>
                 </div>

@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient'
 
+const CAMPOS = 'id, role, nome_completo, contato, unidade, servico, servico_outro, anonimizado_em, criado_em'
+
 function paraCamel(row) {
   if (!row) return null
   return {
@@ -8,6 +10,8 @@ function paraCamel(row) {
     nomeCompleto: row.nome_completo,
     contato: row.contato,
     unidade: row.unidade,
+    servico: row.servico,
+    servicoOutro: row.servico_outro,
     anonimizadoEm: row.anonimizado_em,
     criadoEm: row.criado_em,
   }
@@ -16,7 +20,7 @@ function paraCamel(row) {
 export async function listarPacientes() {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, nome_completo, contato, unidade, anonimizado_em, criado_em')
+    .select(CAMPOS)
     .eq('role', 'paciente')
     .order('criado_em', { ascending: false })
 
@@ -27,7 +31,7 @@ export async function listarPacientes() {
 export async function obterPacientePorId(id) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, nome_completo, contato, unidade, anonimizado_em, criado_em')
+    .select(CAMPOS)
     .eq('id', id)
     .single()
 

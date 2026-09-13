@@ -46,6 +46,8 @@ Deno.serve(async (req) => {
   const email = body?.email?.trim().toLowerCase()
   const contato = body?.contato?.trim() || null
   const unidade = body?.unidade || null
+  const servico = body?.servico || null
+  const servicoOutro = body?.servicoOutro?.trim() || null
 
   if (!nomeCompleto || !email) {
     return new Response(JSON.stringify({ error: 'nomeCompleto e email sao obrigatorios' }), { status: 400 })
@@ -69,6 +71,8 @@ Deno.serve(async (req) => {
     nome_completo: nomeCompleto,
     contato,
     unidade,
+    servico,
+    servico_outro: servico === 'outro' ? servicoOutro : null,
   })
 
   if (profileError) {

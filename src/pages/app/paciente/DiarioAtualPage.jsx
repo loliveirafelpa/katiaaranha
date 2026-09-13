@@ -15,6 +15,20 @@ function formatarHora(iso) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
+function descreverEntrada(e) {
+  if (e.tipoEvento === 'liquido') {
+    return `${e.liquidoMl} ml de ${e.liquidoTipo === 'outro' ? (e.liquidoTipoOutro || 'outro') : LABEL_LIQUIDO[e.liquidoTipo]}`
+  }
+  if (e.tipoEvento === 'urinario') {
+    return `Urinou ${e.volumeUrinadoMl} ml${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
+  }
+  if (e.tipoEvento === 'perda') {
+    const atividade = [e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe].filter(Boolean).join(' — ')
+    return `Perda ${e.perda}${atividade ? ` · ${atividade}` : ''}`
+  }
+  return ''
+}
+
 export default function DiarioAtualPage() {
   const { perfil } = useOutletContext()
   const [carregando, setCarregando] = useState(true)
@@ -79,11 +93,25 @@ export default function DiarioAtualPage() {
 
       <div className="flex flex-wrap gap-3">
         <Link
-          to="/app/diario/nova-entrada"
+          to="/app/diario/nova-entrada/liquido"
+          className="px-4 py-2 rounded-xl font-medium text-white text-sm"
+          style={{ background: colors.secondary }}
+        >
+          + Líquido
+        </Link>
+        <Link
+          to="/app/diario/nova-entrada/urinario"
           className="px-4 py-2 rounded-xl font-medium text-white text-sm"
           style={{ background: colors.primary }}
         >
-          + Nova entrada
+          + Fui ao banheiro
+        </Link>
+        <Link
+          to="/app/diario/nova-entrada/perda"
+          className="px-4 py-2 rounded-xl font-medium text-white text-sm"
+          style={{ background: colors.danger }}
+        >
+          + Perda de urina
         </Link>
         <Link
           to={`/app/diario/dia/${diaAtual}/observacoes`}
@@ -100,8 +128,8 @@ export default function DiarioAtualPage() {
         </h2>
         {entradas.length === 0 ? (
           <p className="text-sm" style={{ color: colors.textSecondary }}>
-            Nenhum registro ainda hoje. Toque em "Nova entrada" sempre que beber algo ou for ao
-            banheiro.
+            Nenhum registro ainda hoje. Toque em um dos botões acima sempre que beber algo, for
+            ao banheiro ou tiver uma perda.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -113,11 +141,7 @@ export default function DiarioAtualPage() {
               >
                 <div>
                   <p className="font-medium">{formatarHora(e.registradoEm)}</p>
-                  <p style={{ color: colors.textSecondary }}>
-                    {e.liquidoMl} ml de {e.liquidoTipo === 'outro' ? (e.liquidoTipoOutro || 'outro') : LABEL_LIQUIDO[e.liquidoTipo]}
-                    {e.volumeUrinadoMl != null && ` · urinou ${e.volumeUrinadoMl} ml`}
-                    {e.perda !== 'sem_perda' && ` · perda ${e.perda}`}
-                  </p>
+                  <p style={{ color: colors.textSecondary }}>{descreverEntrada(e)}</p>
                 </div>
                 <button
                   onClick={() => setEntradaParaExcluir(e)}

@@ -14,6 +14,7 @@ import {
 import TabelaDiariaEstiloPapel from '../../../components/TabelaDiariaEstiloPapel'
 import NotaClinicaForm from '../../../components/NotaClinicaForm'
 import StatusCicloBadge from '../../../components/StatusCicloBadge'
+import { labelServico } from '../../../data/servicos'
 import { colors } from '../../../theme'
 
 const LABEL_UNIDADE = { campinas: 'Campinas', jundiai: 'Jundiaí' }
@@ -152,6 +153,7 @@ export default function PacienteDetalhePage() {
           <h1 className="text-lg font-semibold" style={{ color: colors.secondary }}>{paciente.nomeCompleto}</h1>
           <p className="text-xs" style={{ color: colors.textSecondary }}>
             {paciente.unidade ? LABEL_UNIDADE[paciente.unidade] : 'Sem unidade'}
+            {labelServico(paciente) ? ` · ${labelServico(paciente)}` : ''}
             {paciente.contato ? ` · ${paciente.contato}` : ''}
           </p>
         </div>
@@ -212,7 +214,7 @@ export default function PacienteDetalhePage() {
                 </div>
                 <div className="rounded-xl p-4 text-center" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
                   <p className="text-2xl font-semibold" style={{ color: colors.secondary }}>
-                    {entradas.filter((e) => e.perda !== 'sem_perda').length}
+                    {entradas.filter((e) => e.tipoEvento === 'perda').length}
                   </p>
                   <p className="text-xs" style={{ color: colors.textSecondary }}>Episódios de perda</p>
                 </div>

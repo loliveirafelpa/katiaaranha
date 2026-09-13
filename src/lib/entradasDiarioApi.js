@@ -7,6 +7,7 @@ function paraCamel(row) {
     pacienteId: row.paciente_id,
     registradoEm: row.registrado_em,
     diaNumero: row.dia_numero,
+    tipoEvento: row.tipo_evento,
     liquidoTipo: row.liquido_tipo,
     liquidoTipoOutro: row.liquido_tipo_outro,
     liquidoMl: row.liquido_ml,
@@ -43,11 +44,15 @@ export async function listarEntradasPorDia(cicloId, diaNumero) {
   return data.map(paraCamel)
 }
 
+// Cada entrada representa UM evento pontual de um unico tipo - liquido ingerido,
+// ida ao banheiro (volume urinado) ou perda involuntaria - nunca uma combinacao,
+// porque na vida real esses eventos nao acontecem todos no mesmo instante.
 export async function criarEntrada({
   cicloId,
   pacienteId,
   registradoEm,
   diaNumero,
+  tipoEvento,
   liquidoTipo,
   liquidoTipoOutro,
   liquidoMl,
@@ -57,43 +62,49 @@ export async function criarEntrada({
   perdaAtividadeCategoria,
   perdaAtividadeDetalhe,
 }) {
-  const { data, error } = await supabase
-    .from('entradas_diario')
-    .insert({
-      ciclo_id: cicloId,
-      paciente_id: pacienteId,
-      registrado_em: registradoEm,
-      dia_numero: diaNumero,
+  const base = {
+    ciclo_id: cicloId,
+    paciente_id: pacienteId,
+    registrado_em: registradoEm,
+    dia_numero: diaNumero,
+    tipo_evento: tipoEvento,
+    liquido_tipo: null,
+    liquido_tipo_outro: null,
+    liquido_ml: null,
+    volume_urinado_ml: null,
+    urgencia: null,
+    perda: null,
+    perda_atividade_categoria: null,
+    perda_atividade_detalhe: null,
+  }
+
+  let payload = base
+  if (tipoEvento === 'liquido') {
+    payload = {
+      ...base,
       liquido_tipo: liquidoTipo,
       liquido_tipo_outro: liquidoTipoOutro || null,
       liquido_ml: liquidoMl,
-      volume_urinado_ml: volumeUrinadoMl ?? null,
+    }
+  } else if (tipoEvento === 'urinario') {
+    payload = {
+      ...base,
+      volume_urinado_ml: volumeUrinadoMl,
       urgencia: urgencia || null,
+    }
+  } else if (tipoEvento === 'perda') {
+    payload = {
+      ...base,
       perda,
-      perda_atividade_categoria: perda !== 'sem_perda' ? perdaAtividadeCategoria || null : null,
-      perda_atividade_detalhe: perda !== 'sem_perda' ? perdaAtividadeDetalhe || null : null,
-    })
-    .select('*')
-    .single()
+      perda_atividade_categoria: perdaAtividadeCategoria || null,
+      perda_atividade_detalhe: perdaAtividadeDetalhe || null,
+    }
+  }
+
+  const { data, error } = await supabase.from('entradas_diario').insert(payload).select('*').single()
 
   if (error) throw error
   return paraCamel(data)
-}
-
-export async function atualizarEntrada(id, campos) {
-  const payload = {}
-  if ('registradoEm' in campos) payload.registrado_em = campos.registradoEm
-  if ('liquidoTipo' in campos) payload.liquido_tipo = campos.liquidoTipo
-  if ('liquidoTipoOutro' in campos) payload.liquido_tipo_outro = campos.liquidoTipoOutro || null
-  if ('liquidoMl' in campos) payload.liquido_ml = campos.liquidoMl
-  if ('volumeUrinadoMl' in campos) payload.volume_urinado_ml = campos.volumeUrinadoMl ?? null
-  if ('urgencia' in campos) payload.urgencia = campos.urgencia || null
-  if ('perda' in campos) payload.perda = campos.perda
-  if ('perdaAtividadeCategoria' in campos) payload.perda_atividade_categoria = campos.perdaAtividadeCategoria || null
-  if ('perdaAtividadeDetalhe' in campos) payload.perda_atividade_detalhe = campos.perdaAtividadeDetalhe || null
-
-  const { error } = await supabase.from('entradas_diario').update(payload).eq('id', id)
-  if (error) throw error
 }
 
 export async function excluirEntrada(id) {

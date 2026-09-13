@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { criarPaciente } from '../../../lib/pacientesApi'
+import { SERVICOS } from '../../../data/servicos'
 import { colors } from '../../../theme'
 
 export default function NovoPacientePage() {
@@ -8,6 +9,8 @@ export default function NovoPacientePage() {
   const [email, setEmail] = useState('')
   const [contato, setContato] = useState('')
   const [unidade, setUnidade] = useState('')
+  const [servico, setServico] = useState('')
+  const [servicoOutro, setServicoOutro] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
   const [resultado, setResultado] = useState(null)
@@ -17,7 +20,14 @@ export default function NovoPacientePage() {
     setErro('')
     setSalvando(true)
     try {
-      const res = await criarPaciente({ nomeCompleto, email, contato, unidade: unidade || null })
+      const res = await criarPaciente({
+        nomeCompleto,
+        email,
+        contato,
+        unidade: unidade || null,
+        servico: servico || null,
+        servicoOutro: servico === 'outro' ? servicoOutro : null,
+      })
       setResultado(res)
     } catch (err) {
       setErro(err.message || 'Não foi possível criar o paciente.')
@@ -100,6 +110,31 @@ export default function NovoPacientePage() {
           <option value="campinas">Campinas</option>
           <option value="jundiai">Jundiaí</option>
         </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Serviço / tratamento</label>
+        <select
+          value={servico}
+          onChange={(e) => setServico(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border text-sm"
+          style={{ borderColor: colors.border }}
+        >
+          <option value="">Selecione</option>
+          {SERVICOS.map((s) => (
+            <option key={s.valor} value={s.valor}>{s.label}</option>
+          ))}
+        </select>
+        {servico === 'outro' && (
+          <input
+            type="text"
+            placeholder="Qual serviço?"
+            value={servicoOutro}
+            onChange={(e) => setServicoOutro(e.target.value)}
+            className="w-full mt-2 px-3 py-2 rounded-lg border text-sm"
+            style={{ borderColor: colors.border }}
+          />
+        )}
       </div>
 
       {erro && <p className="text-sm" style={{ color: colors.danger }}>{erro}</p>}

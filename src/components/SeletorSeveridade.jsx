@@ -6,14 +6,10 @@ const NIVEIS = [
   { valor: 'intensa', label: 'Intensa', cor: colors.danger },
 ]
 
-export default function SeletorSeveridade({ value, onChange, incluirSemPerda = false, semPerdaValor = 'sem_perda' }) {
-  const opcoes = incluirSemPerda
-    ? [{ valor: semPerdaValor, label: 'Sem perda', cor: colors.success }, ...NIVEIS]
-    : NIVEIS
-
+export default function SeletorSeveridade({ value, onChange }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {opcoes.map((op) => {
+      {NIVEIS.map((op) => {
         const selecionado = value === op.valor
         return (
           <button
