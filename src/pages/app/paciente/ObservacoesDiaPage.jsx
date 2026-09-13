@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
-import { obterCicloAtivo } from '../../../lib/ciclosDiarioApi'
 import { obterObservacaoDoDia, salvarObservacaoDoDia } from '../../../lib/observacoesApi'
 import FormObservacoesDia from '../../../components/FormObservacoesDia'
 import { colors } from '../../../theme'
@@ -19,10 +18,9 @@ const VAZIO = {
 }
 
 export default function ObservacoesDiaPage() {
-  const { perfil } = useOutletContext()
+  const { perfil, cicloSelecionado } = useOutletContext()
   const { diaNumero } = useParams()
   const navigate = useNavigate()
-  const [ciclo, setCiclo] = useState(null)
   const [valor, setValor] = useState(VAZIO)
   const [existenteId, setExistenteId] = useState(null)
   const [carregando, setCarregando] = useState(true)
@@ -31,39 +29,38 @@ export default function ObservacoesDiaPage() {
   useEffect(() => {
     let ativo = true
     async function carregar() {
-      const cicloAtivo = await obterCicloAtivo(perfil.id)
-      if (!ativo) return
-      setCiclo(cicloAtivo)
-      if (cicloAtivo) {
-        const existente = await obterObservacaoDoDia(cicloAtivo.id, Number(diaNumero))
-        if (ativo && existente) {
-          setExistenteId(existente.id)
-          setValor({
-            absorventeUso: existente.absorventeUso || false,
-            absorventeTipo: existente.absorventeTipo || '',
-            absorventeTipoOutro: existente.absorventeTipoOutro || '',
-            absorventeQuantidade: existente.absorventeQuantidade ?? '',
-            menstruacao: existente.menstruacao || false,
-            menstruacaoInicio: existente.menstruacaoInicio || '',
-            menstruacaoFim: existente.menstruacaoFim || '',
-            medicamentosUso: existente.medicamentosUso || false,
-            medicamentosQuais: existente.medicamentosQuais || '',
-            outrosSintomas: existente.outrosSintomas || '',
-          })
-        }
+      const existente = cicloSelecionado
+        ? await obterObservacaoDoDia(cicloSelecionado.id, Number(diaNumero))
+        : null
+      if (ativo) {
+        // Sempre define os dois lados (existe ou nao) - sem isso, trocar de ciclo/dia pra um
+        // que ainda nao tem observacao salva deixava os valores do dia anterior no formulario.
+        setExistenteId(existente?.id ?? null)
+        setValor(existente ? {
+          absorventeUso: existente.absorventeUso || false,
+          absorventeTipo: existente.absorventeTipo || '',
+          absorventeTipoOutro: existente.absorventeTipoOutro || '',
+          absorventeQuantidade: existente.absorventeQuantidade ?? '',
+          menstruacao: existente.menstruacao || false,
+          menstruacaoInicio: existente.menstruacaoInicio || '',
+          menstruacaoFim: existente.menstruacaoFim || '',
+          medicamentosUso: existente.medicamentosUso || false,
+          medicamentosQuais: existente.medicamentosQuais || '',
+          outrosSintomas: existente.outrosSintomas || '',
+        } : VAZIO)
+        setCarregando(false)
       }
-      if (ativo) setCarregando(false)
     }
     carregar()
     return () => { ativo = false }
-  }, [perfil.id, diaNumero])
+  }, [cicloSelecionado, diaNumero])
 
   async function handleSalvar() {
     setSalvando(true)
     try {
       await salvarObservacaoDoDia({
         id: existenteId,
-        cicloId: ciclo.id,
+        cicloId: cicloSelecionado.id,
         pacienteId: perfil.id,
         diaNumero: Number(diaNumero),
         ...valor,

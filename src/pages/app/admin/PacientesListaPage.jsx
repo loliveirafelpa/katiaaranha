@@ -24,7 +24,6 @@ export default function PacientesListaPage() {
             ...p,
             status: calcularStatusCiclo(ciclo),
             diaAtual: ciclo ? calcularDiaAtual(ciclo) : null,
-            duracaoDias: ciclo ? ciclo.duracaoDias : null,
           }
         })
       )
@@ -90,7 +89,7 @@ export default function PacientesListaPage() {
                     {p.contato ? ` · ${p.contato}` : ''}
                   </p>
                 </div>
-                <StatusCicloBadge status={p.status} diaAtual={p.diaAtual} duracaoDias={p.duracaoDias} />
+                <StatusCicloBadge status={p.status} diaAtual={p.diaAtual} />
               </Link>
             </li>
           ))}

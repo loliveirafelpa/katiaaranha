@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { login } from '../lib/authApi'
+import LogoLotus from '../components/brand/LogoLotus'
 import { colors } from '../theme'
 
 export default function LoginPage() {
@@ -9,7 +10,6 @@ export default function LoginPage() {
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
   const navigate = useNavigate()
-  const location = useLocation()
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -17,8 +17,10 @@ export default function LoginPage() {
     setCarregando(true)
     try {
       await login(email, senha)
-      const destino = location.state?.from?.pathname || '/app'
-      navigate(destino, { replace: true })
+      // Sempre entra por /app: quem decide pra onde ir (admin ou diário do paciente) e o
+      // papel de quem logou agora, nunca a pagina de onde uma sessao anterior veio -
+      // senao um login troca de conta mas fica preso na tela da conta antiga.
+      navigate('/app', { replace: true })
     } catch (err) {
       setErro('E-mail ou senha inválidos.')
     } finally {
@@ -33,6 +35,7 @@ export default function LoginPage() {
         className="w-full max-w-sm rounded-2xl p-8"
         style={{ background: colors.surface, border: `1px solid ${colors.border}` }}
       >
+        <LogoLotus size={44} className="mb-3" />
         <h1 className="text-xl font-semibold mb-1" style={{ color: colors.secondary }}>Entrar</h1>
         <p className="text-sm mb-6" style={{ color: colors.textSecondary }}>
           Diário Miccional — CPA Fisioterapia

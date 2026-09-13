@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
-import { obterCicloAtivo } from '../../../lib/ciclosDiarioApi'
 import { listarEntradasPorDia } from '../../../lib/entradasDiarioApi'
 import TabelaDiariaEstiloPapel from '../../../components/TabelaDiariaEstiloPapel'
 import { colors } from '../../../theme'
 
 export default function HistoricoDiaPage() {
-  const { perfil } = useOutletContext()
+  const { cicloSelecionado } = useOutletContext()
   const { diaNumero } = useParams()
   const [carregando, setCarregando] = useState(true)
   const [entradas, setEntradas] = useState([])
@@ -15,9 +14,14 @@ export default function HistoricoDiaPage() {
     let ativo = true
     async function carregar() {
       setCarregando(true)
-      const ciclo = await obterCicloAtivo(perfil.id)
-      if (!ciclo || !ativo) return
-      const lista = await listarEntradasPorDia(ciclo.id, Number(diaNumero))
+      if (!cicloSelecionado) {
+        if (ativo) {
+          setEntradas([])
+          setCarregando(false)
+        }
+        return
+      }
+      const lista = await listarEntradasPorDia(cicloSelecionado.id, Number(diaNumero))
       if (ativo) {
         setEntradas(lista)
         setCarregando(false)
@@ -25,7 +29,7 @@ export default function HistoricoDiaPage() {
     }
     carregar()
     return () => { ativo = false }
-  }, [perfil.id, diaNumero])
+  }, [cicloSelecionado, diaNumero])
 
   return (
     <div className="space-y-4">

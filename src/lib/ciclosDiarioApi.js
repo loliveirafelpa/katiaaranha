@@ -27,12 +27,11 @@ export async function obterCicloAtivo(pacienteId) {
   return ciclos[0] ?? null
 }
 
-export async function criarCiclo({ pacienteId, duracaoDias, dataInicio, criadoPor }) {
+export async function criarCiclo({ pacienteId, dataInicio, criadoPor }) {
   const { data, error } = await supabase
     .from('ciclos_diario')
     .insert({
       paciente_id: pacienteId,
-      duracao_dias: duracaoDias,
       data_inicio: dataInicio,
       criado_por: criadoPor,
     })
@@ -59,10 +58,11 @@ export function calcularDiaAtual(ciclo) {
   return calcularDiaNumeroPara(ciclo, new Date().toISOString())
 }
 
+// O ciclo nao tem mais data de encerramento: uma vez iniciado, fica "em andamento"
+// indefinidamente, ate o paciente parar de registrar por conta propria.
 export function calcularStatusCiclo(ciclo) {
   if (!ciclo) return 'nao_iniciado'
   const diaAtual = calcularDiaAtual(ciclo)
   if (diaAtual < 1) return 'nao_iniciado'
-  if (diaAtual > ciclo.duracaoDias) return 'concluido'
   return 'em_andamento'
 }

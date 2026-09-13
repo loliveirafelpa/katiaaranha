@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Link, Navigate, useOutletContext } from 'react-router-dom'
-import { obterCicloAtivo, calcularDiaAtual, calcularStatusCiclo } from '../../../lib/ciclosDiarioApi'
+import { Link, useOutletContext } from 'react-router-dom'
+import { calcularDiaAtual } from '../../../lib/ciclosDiarioApi'
 import { listarEntradasPorDia, excluirEntrada } from '../../../lib/entradasDiarioApi'
 import IndicadorDiaXdeN from '../../../components/IndicadorDiaXdeN'
 import ModalConfirmacaoExclusao from '../../../components/ModalConfirmacaoExclusao'
@@ -23,7 +23,8 @@ function descreverEntrada(e) {
     return `${e.liquidoMl} ml de ${e.liquidoTipo === 'outro' ? (e.liquidoTipoOutro || 'outro') : LABEL_LIQUIDO[e.liquidoTipo]}`
   }
   if (e.tipoEvento === 'urinario') {
-    return `Urinou ${e.volumeUrinadoMl} ml${e.volumeUrinadoNivel ? ` (${LABEL_NIVEL[e.volumeUrinadoNivel]})` : ''}${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
+    const volume = e.volumeUrinadoMl != null ? `${e.volumeUrinadoMl} ml` : 'Volume não informado'
+    return `Urinou · ${volume}${e.volumeUrinadoNivel ? ` (${LABEL_NIVEL[e.volumeUrinadoNivel]})` : ''}${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
   }
   if (e.tipoEvento === 'perda') {
     const atividade = labelAtividadePerda(e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe)
@@ -33,25 +34,23 @@ function descreverEntrada(e) {
 }
 
 export default function DiarioAtualPage() {
-  const { perfil } = useOutletContext()
+  const { cicloSelecionado } = useOutletContext()
   const [carregando, setCarregando] = useState(true)
-  const [ciclo, setCiclo] = useState(null)
   const [entradas, setEntradas] = useState([])
   const [entradaParaExcluir, setEntradaParaExcluir] = useState(null)
   const [excluindo, setExcluindo] = useState(false)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
-    const cicloAtivo = await obterCicloAtivo(perfil.id)
-    setCiclo(cicloAtivo)
-    if (cicloAtivo) {
-      const diaAtual = calcularDiaAtual(cicloAtivo)
-      if (diaAtual >= 1 && diaAtual <= cicloAtivo.duracaoDias) {
-        setEntradas(await listarEntradasPorDia(cicloAtivo.id, diaAtual))
-      }
+    if (cicloSelecionado && calcularDiaAtual(cicloSelecionado) >= 1) {
+      setEntradas(await listarEntradasPorDia(cicloSelecionado.id, calcularDiaAtual(cicloSelecionado)))
+    } else {
+      // Limpa os registros do ciclo anterior - sem isso, trocar pra um ciclo sem dados
+      // ainda validos (ex.: comeca no futuro) deixava a lista antiga na tela por engano.
+      setEntradas([])
     }
     setCarregando(false)
-  }, [perfil.id])
+  }, [cicloSelecionado])
 
   useEffect(() => { carregar() }, [carregar])
 
@@ -59,7 +58,7 @@ export default function DiarioAtualPage() {
     return <p style={{ color: colors.textSecondary }}>Carregando...</p>
   }
 
-  if (!ciclo) {
+  if (!cicloSelecionado) {
     return (
       <div className="rounded-2xl p-6" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
         <p style={{ color: colors.textSecondary }}>
@@ -70,12 +69,18 @@ export default function DiarioAtualPage() {
     )
   }
 
-  const status = calcularStatusCiclo(ciclo)
-  const diaAtual = calcularDiaAtual(ciclo)
-
-  if (status === 'concluido') {
-    return <Navigate to="/app/diario/concluido" replace />
+  if (calcularDiaAtual(cicloSelecionado) < 1) {
+    const inicioFormatado = new Date(`${cicloSelecionado.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')
+    return (
+      <div className="rounded-2xl p-6" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
+        <p style={{ color: colors.textSecondary }}>
+          Este ciclo ainda não começou. Ele passa a valer a partir de {inicioFormatado}.
+        </p>
+      </div>
+    )
   }
+
+  const diaAtual = calcularDiaAtual(cicloSelecionado)
 
   async function handleExcluir() {
     setExcluindo(true)
@@ -91,7 +96,7 @@ export default function DiarioAtualPage() {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl p-5" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-        <IndicadorDiaXdeN diaAtual={diaAtual} duracaoDias={ciclo.duracaoDias} />
+        <IndicadorDiaXdeN diaAtual={diaAtual} />
       </div>
 
       <div className="flex flex-wrap gap-3">

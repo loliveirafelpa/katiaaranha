@@ -11,7 +11,6 @@ import DiarioAtualPage from './pages/app/paciente/DiarioAtualPage'
 import NovaEntradaPage from './pages/app/paciente/NovaEntradaPage'
 import HistoricoDiaPage from './pages/app/paciente/HistoricoDiaPage'
 import ObservacoesDiaPage from './pages/app/paciente/ObservacoesDiaPage'
-import CicloConcluidoPage from './pages/app/paciente/CicloConcluidoPage'
 import PacientesListaPage from './pages/app/admin/PacientesListaPage'
 import NovoPacientePage from './pages/app/admin/NovoPacientePage'
 import PacienteDetalhePage from './pages/app/admin/PacienteDetalhePage'
@@ -32,7 +31,6 @@ export default function App() {
         <Route path="diario/nova-entrada/:tipo" element={<NovaEntradaPage />} />
         <Route path="diario/dia/:diaNumero" element={<HistoricoDiaPage />} />
         <Route path="diario/dia/:diaNumero/observacoes" element={<ObservacoesDiaPage />} />
-        <Route path="diario/concluido" element={<CicloConcluidoPage />} />
 
         <Route path="admin/pacientes" element={<PacientesListaPage />} />
         <Route path="admin/pacientes/novo" element={<NovoPacientePage />} />

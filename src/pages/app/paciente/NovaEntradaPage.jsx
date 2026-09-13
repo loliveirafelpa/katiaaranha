@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom'
-import { obterCicloAtivo, calcularDiaNumeroPara } from '../../../lib/ciclosDiarioApi'
+import { calcularDiaNumeroPara } from '../../../lib/ciclosDiarioApi'
 import { criarEntrada } from '../../../lib/entradasDiarioApi'
 import ChipSeletorLiquido from '../../../components/ChipSeletorLiquido'
 import AtalhosVolume from '../../../components/AtalhosVolume'
@@ -23,11 +23,24 @@ function agoraParaInputLocal() {
   return agora.toISOString().slice(0, 16)
 }
 
+// O ciclo nao tem mais data de encerramento: o unico limite e o inicio do ciclo
+// (nao da pra registrar antes dele) e o momento atual (nao da pra registrar o futuro).
+function limitesDoCiclo(ciclo) {
+  return {
+    min: `${ciclo.dataInicio}T00:00`,
+    max: agoraParaInputLocal(),
+  }
+}
+
+function mensagemForaDoCiclo(ciclo) {
+  const inicioFormatado = new Date(`${ciclo.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')
+  return `Esse horário está fora do período do seu diário. Escolha uma data a partir do início (${inicioFormatado}) e não posterior a agora.`
+}
+
 export default function NovaEntradaPage() {
-  const { perfil } = useOutletContext()
+  const { perfil, cicloSelecionado: ciclo } = useOutletContext()
   const { tipo } = useParams()
   const navigate = useNavigate()
-  const [ciclo, setCiclo] = useState(null)
 
   const [horario, setHorario] = useState(agoraParaInputLocal())
 
@@ -49,11 +62,7 @@ export default function NovaEntradaPage() {
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
 
-  useEffect(() => {
-    obterCicloAtivo(perfil.id).then(setCiclo)
-  }, [perfil.id])
-
-  if (!TIPOS_VALIDOS.includes(tipo)) {
+  if (!TIPOS_VALIDOS.includes(tipo) || !ciclo) {
     return <Navigate to="/app/diario" replace />
   }
 
@@ -65,16 +74,17 @@ export default function NovaEntradaPage() {
       setErro('Informe a quantidade de líquido ingerido.')
       return
     }
-    if (tipo === 'urinario' && !volumeUrinadoMl && volumeUrinadoMl !== 0) {
-      setErro('Informe o volume urinado.')
+
+    const registradoEm = new Date(horario).toISOString()
+    const diaNumero = calcularDiaNumeroPara(ciclo, registradoEm)
+
+    if (diaNumero < 1 || new Date(registradoEm) > new Date()) {
+      setErro(mensagemForaDoCiclo(ciclo))
       return
     }
 
     setSalvando(true)
     try {
-      const registradoEm = new Date(horario).toISOString()
-      const diaNumero = calcularDiaNumeroPara(ciclo, registradoEm)
-
       await criarEntrada({
         cicloId: ciclo.id,
         pacienteId: perfil.id,
@@ -94,14 +104,14 @@ export default function NovaEntradaPage() {
 
       navigate('/app/diario', { replace: true })
     } catch (err) {
-      setErro(err.message || 'Não foi possível salvar. Tente novamente.')
+      if (err.message?.includes('entradas_diario_dia_numero_check')) {
+        setErro(mensagemForaDoCiclo(ciclo))
+      } else {
+        setErro(err.message || 'Não foi possível salvar. Tente novamente.')
+      }
     } finally {
       setSalvando(false)
     }
-  }
-
-  if (!ciclo) {
-    return <p style={{ color: colors.textSecondary }}>Carregando...</p>
   }
 
   return (
@@ -118,6 +128,8 @@ export default function NovaEntradaPage() {
           type="datetime-local"
           value={horario}
           onChange={(e) => setHorario(e.target.value)}
+          min={limitesDoCiclo(ciclo).min}
+          max={limitesDoCiclo(ciclo).max}
           className="w-full px-3 py-2 rounded-lg border text-sm"
           style={{ borderColor: colors.border }}
         />
@@ -141,7 +153,7 @@ export default function NovaEntradaPage() {
       {tipo === 'urinario' && (
         <>
           <div>
-            <label className="block text-sm font-medium mb-2">Volume urinado (ml)</label>
+            <label className="block text-sm font-medium mb-2">Volume urinado (ml) <span className="font-normal" style={{ color: colors.textSecondary }}>(opcional)</span></label>
             <input
               type="number"
               min="0"
