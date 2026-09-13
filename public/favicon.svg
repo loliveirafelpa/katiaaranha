@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="lotusOuter" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#9C3D14" />
+      <stop offset="100%" stop-color="#E8752C" />
+    </linearGradient>
+    <linearGradient id="lotusInner" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#E8752C" />
+      <stop offset="100%" stop-color="#F0A868" />
+    </linearGradient>
+  </defs>
+  <g>
+    <path d="M0,0 C -7,-9.5 -5.6,-28.5 0,-38 C 5.6,-28.5 7,-9.5 0,0 Z" fill="url(#lotusOuter)" transform="translate(50,92) rotate(-70)" />
+    <path d="M0,0 C -7,-9.5 -5.6,-28.5 0,-38 C 5.6,-28.5 7,-9.5 0,0 Z" fill="url(#lotusOuter)" transform="translate(50,92) rotate(-35)" />
+    <path d="M0,0 C -7,-9.5 -5.6,-28.5 0,-38 C 5.6,-28.5 7,-9.5 0,0 Z" fill="url(#lotusOuter)" transform="translate(50,92) rotate(0)" />
+    <path d="M0,0 C -7,-9.5 -5.6,-28.5 0,-38 C 5.6,-28.5 7,-9.5 0,0 Z" fill="url(#lotusOuter)" transform="translate(50,92) rotate(35)" />
+    <path d="M0,0 C -7,-9.5 -5.6,-28.5 0,-38 C 5.6,-28.5 7,-9.5 0,0 Z" fill="url(#lotusOuter)" transform="translate(50,92) rotate(70)" />
+
+    <path d="M0,0 C -5,-6.75 -4,-20.25 0,-27 C 4,-20.25 5,-6.75 0,0 Z" fill="url(#lotusInner)" transform="translate(50,92) rotate(-38)" />
+    <path d="M0,0 C -5,-6.75 -4,-20.25 0,-27 C 4,-20.25 5,-6.75 0,0 Z" fill="url(#lotusInner)" transform="translate(50,92) rotate(0)" />
+    <path d="M0,0 C -5,-6.75 -4,-20.25 0,-27 C 4,-20.25 5,-6.75 0,0 Z" fill="url(#lotusInner)" transform="translate(50,92) rotate(38)" />
+
+    <circle cx="50" cy="72" r="7" fill="#9C3D14" />
+    <circle cx="50" cy="68" r="1.1" fill="#F0A868" />
+    <circle cx="53.46" cy="70" r="1.1" fill="#F0A868" />
+    <circle cx="53.46" cy="74" r="1.1" fill="#F0A868" />
+    <circle cx="50" cy="76" r="1.1" fill="#F0A868" />
+    <circle cx="46.54" cy="74" r="1.1" fill="#F0A868" />
+    <circle cx="46.54" cy="70" r="1.1" fill="#F0A868" />
+    <circle cx="50" cy="72" r="1.4" fill="#F0A868" />
+  </g>
+</svg>
