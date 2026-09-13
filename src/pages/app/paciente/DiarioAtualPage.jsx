@@ -4,6 +4,7 @@ import { obterCicloAtivo, calcularDiaAtual, calcularStatusCiclo } from '../../..
 import { listarEntradasPorDia, excluirEntrada } from '../../../lib/entradasDiarioApi'
 import IndicadorDiaXdeN from '../../../components/IndicadorDiaXdeN'
 import ModalConfirmacaoExclusao from '../../../components/ModalConfirmacaoExclusao'
+import { labelAtividadePerda } from '../../../data/atividadesPerda'
 import { colors } from '../../../theme'
 
 const LABEL_LIQUIDO = {
@@ -25,7 +26,7 @@ function descreverEntrada(e) {
     return `Urinou ${e.volumeUrinadoMl} ml${e.volumeUrinadoNivel ? ` (${LABEL_NIVEL[e.volumeUrinadoNivel]})` : ''}${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
   }
   if (e.tipoEvento === 'perda') {
-    const atividade = [e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe].filter(Boolean).join(' — ')
+    const atividade = labelAtividadePerda(e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe)
     return `Perda ${e.perda}${atividade ? ` · ${atividade}` : ''}`
   }
   return ''

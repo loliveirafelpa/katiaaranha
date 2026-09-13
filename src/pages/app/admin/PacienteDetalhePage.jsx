@@ -15,14 +15,11 @@ import TabelaDiariaEstiloPapel from '../../../components/TabelaDiariaEstiloPapel
 import NotaClinicaForm from '../../../components/NotaClinicaForm'
 import StatusCicloBadge from '../../../components/StatusCicloBadge'
 import { labelServico } from '../../../data/servicos'
+import { ATIVIDADES_PERDA } from '../../../data/atividadesPerda'
 import { colors } from '../../../theme'
 
 const LABEL_UNIDADE = { campinas: 'Campinas', jundiai: 'Jundiaí' }
-const LABEL_ATIVIDADE = {
-  trabalho: 'Trabalho', estudos: 'Estudos', caminhada: 'Caminhada', academia: 'Academia',
-  domesticas: 'Domésticas', social: 'Social', compras: 'Compras', lazer: 'Lazer',
-  descanso: 'Descanso', outros: 'Outros',
-}
+const LABEL_ATIVIDADE = Object.fromEntries(ATIVIDADES_PERDA.map((a) => [a.valor, a.label]))
 
 const ABAS = [
   { id: 'diario', label: 'Diário' },

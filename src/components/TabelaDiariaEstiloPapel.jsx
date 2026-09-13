@@ -1,4 +1,5 @@
 import { colors } from '../theme'
+import { labelAtividadePerda } from '../data/atividadesPerda'
 
 const LABEL_LIQUIDO = {
   agua: 'Água', cafe: 'Café', cha: 'Chá', suco: 'Suco',
@@ -31,7 +32,7 @@ function descreverEntrada(e) {
     return `${e.volumeUrinadoMl} ml${e.volumeUrinadoNivel ? ` (${LABEL_NIVEL[e.volumeUrinadoNivel]})` : ''}${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
   }
   if (e.tipoEvento === 'perda') {
-    const atividade = [e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe].filter(Boolean).join(' — ')
+    const atividade = labelAtividadePerda(e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe)
     return `Perda ${e.perda}${atividade ? ` · ${atividade}` : ''}`
   }
   return '—'

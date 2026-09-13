@@ -2,10 +2,7 @@
 // para a visao de graficos/resumo do admin. Volume de dados por paciente e pequeno, entao
 // calcular no frontend e mais simples do que manter views/RPC no Postgres nesta fase.
 
-const CATEGORIAS_ATIVIDADE = [
-  'trabalho', 'estudos', 'caminhada', 'academia', 'domesticas',
-  'social', 'compras', 'lazer', 'descanso', 'outros',
-]
+import { ATIVIDADES_PERDA } from '../data/atividadesPerda'
 
 function agruparPorDia(entradas) {
   const grupos = new Map()
@@ -54,7 +51,7 @@ export function calcularBalancoHidrico(entradas) {
 }
 
 export function calcularPerdasPorAtividade(entradas) {
-  const contagem = Object.fromEntries(CATEGORIAS_ATIVIDADE.map((c) => [c, 0]))
+  const contagem = Object.fromEntries(ATIVIDADES_PERDA.map((a) => [a.valor, 0]))
   for (const e of entradas) {
     if (e.tipoEvento === 'perda' && e.perdaAtividadeCategoria) {
       contagem[e.perdaAtividadeCategoria] = (contagem[e.perdaAtividadeCategoria] || 0) + 1
@@ -84,5 +81,3 @@ export function calcularNocturia(entradas, { inicioNoite = 23, fimNoite = 6 } = 
 
   return { total, porDia }
 }
-
-export { CATEGORIAS_ATIVIDADE }
