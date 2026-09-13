@@ -11,6 +11,8 @@ const LABEL_LIQUIDO = {
   refrigerante: 'Refrigerante', alcool: 'Álcool', outro: 'Outro',
 }
 
+const LABEL_NIVEL = { baixo: 'baixo', medio: 'médio', alto: 'alto' }
+
 function formatarHora(iso) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
@@ -20,7 +22,7 @@ function descreverEntrada(e) {
     return `${e.liquidoMl} ml de ${e.liquidoTipo === 'outro' ? (e.liquidoTipoOutro || 'outro') : LABEL_LIQUIDO[e.liquidoTipo]}`
   }
   if (e.tipoEvento === 'urinario') {
-    return `Urinou ${e.volumeUrinadoMl} ml${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
+    return `Urinou ${e.volumeUrinadoMl} ml${e.volumeUrinadoNivel ? ` (${LABEL_NIVEL[e.volumeUrinadoNivel]})` : ''}${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
   }
   if (e.tipoEvento === 'perda') {
     const atividade = [e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe].filter(Boolean).join(' — ')

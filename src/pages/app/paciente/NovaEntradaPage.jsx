@@ -6,6 +6,7 @@ import ChipSeletorLiquido from '../../../components/ChipSeletorLiquido'
 import AtalhosVolume from '../../../components/AtalhosVolume'
 import SeletorSeveridade from '../../../components/SeletorSeveridade'
 import SeletorAtividade from '../../../components/SeletorAtividade'
+import SeletorNivelVolume from '../../../components/SeletorNivelVolume'
 import { colors } from '../../../theme'
 
 const TIPOS_VALIDOS = ['liquido', 'urinario', 'perda']
@@ -37,6 +38,7 @@ export default function NovaEntradaPage() {
 
   // Campos especificos de "urinario"
   const [volumeUrinadoMl, setVolumeUrinadoMl] = useState('')
+  const [volumeUrinadoNivel, setVolumeUrinadoNivel] = useState('')
   const [urgencia, setUrgencia] = useState('')
 
   // Campos especificos de "perda"
@@ -83,6 +85,7 @@ export default function NovaEntradaPage() {
         liquidoTipoOutro,
         liquidoMl: liquidoMl === '' ? null : Number(liquidoMl),
         volumeUrinadoMl: volumeUrinadoMl === '' ? null : Number(volumeUrinadoMl),
+        volumeUrinadoNivel,
         urgencia: urgencia || null,
         perda,
         perdaAtividadeCategoria: perdaCategoria,
@@ -138,8 +141,20 @@ export default function NovaEntradaPage() {
       {tipo === 'urinario' && (
         <>
           <div>
-            <label className="block text-sm font-medium mb-2">Volume urinado</label>
-            <AtalhosVolume value={volumeUrinadoMl} onChange={setVolumeUrinadoMl} placeholder="ml" />
+            <label className="block text-sm font-medium mb-2">Volume urinado (ml)</label>
+            <input
+              type="number"
+              min="0"
+              placeholder="ml"
+              value={volumeUrinadoMl}
+              onChange={(e) => setVolumeUrinadoMl(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border text-sm"
+              style={{ borderColor: colors.border }}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Nível do volume</label>
+            <SeletorNivelVolume value={volumeUrinadoNivel} onChange={setVolumeUrinadoNivel} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Necessidade urgente de urinar</label>

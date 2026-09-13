@@ -12,6 +12,7 @@ function paraCamel(row) {
     liquidoTipoOutro: row.liquido_tipo_outro,
     liquidoMl: row.liquido_ml,
     volumeUrinadoMl: row.volume_urinado_ml,
+    volumeUrinadoNivel: row.volume_urinado_nivel,
     urgencia: row.urgencia,
     perda: row.perda,
     perdaAtividadeCategoria: row.perda_atividade_categoria,
@@ -57,6 +58,7 @@ export async function criarEntrada({
   liquidoTipoOutro,
   liquidoMl,
   volumeUrinadoMl,
+  volumeUrinadoNivel,
   urgencia,
   perda,
   perdaAtividadeCategoria,
@@ -72,6 +74,7 @@ export async function criarEntrada({
     liquido_tipo_outro: null,
     liquido_ml: null,
     volume_urinado_ml: null,
+    volume_urinado_nivel: null,
     urgencia: null,
     perda: null,
     perda_atividade_categoria: null,
@@ -90,6 +93,7 @@ export async function criarEntrada({
     payload = {
       ...base,
       volume_urinado_ml: volumeUrinadoMl,
+      volume_urinado_nivel: volumeUrinadoNivel || null,
       urgencia: urgencia || null,
     }
   } else if (tipoEvento === 'perda') {

@@ -5,6 +5,8 @@ const LABEL_LIQUIDO = {
   refrigerante: 'Refrigerante', alcool: 'Álcool', outro: 'Outro',
 }
 
+const LABEL_NIVEL = { baixo: 'baixo', medio: 'médio', alto: 'alto' }
+
 const LABEL_TIPO = {
   liquido: 'Líquido ingerido',
   urinario: 'Foi ao banheiro',
@@ -26,7 +28,7 @@ function descreverEntrada(e) {
     return `${e.liquidoMl} ml de ${e.liquidoTipo === 'outro' ? (e.liquidoTipoOutro || 'outro') : LABEL_LIQUIDO[e.liquidoTipo]}`
   }
   if (e.tipoEvento === 'urinario') {
-    return `${e.volumeUrinadoMl} ml${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
+    return `${e.volumeUrinadoMl} ml${e.volumeUrinadoNivel ? ` (${LABEL_NIVEL[e.volumeUrinadoNivel]})` : ''}${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
   }
   if (e.tipoEvento === 'perda') {
     const atividade = [e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe].filter(Boolean).join(' — ')
