@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-ssr/
+.env
+.env.local
+.env.*.local
+*.local
+.claude/
+.vscode/
+.DS_Store
+Thumbs.db
+supabase/.temp/
