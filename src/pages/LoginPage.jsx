@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { login } from '../lib/authApi'
-import LogoLotus from '../components/brand/LogoLotus'
+import LogoCpa from '../components/brand/LogoCpa'
 import { colors } from '../theme'
 
 export default function LoginPage() {
@@ -35,7 +35,7 @@ export default function LoginPage() {
         className="w-full max-w-sm rounded-2xl p-8"
         style={{ background: colors.surface, border: `1px solid ${colors.border}` }}
       >
-        <LogoLotus size={44} className="mb-3" />
+        <LogoCpa height={48} className="mb-3" />
         <h1 className="text-xl font-semibold mb-1" style={{ color: colors.secondary }}>Entrar</h1>
         <p className="text-sm mb-6" style={{ color: colors.textSecondary }}>
           Diário Miccional — CPA Fisioterapia

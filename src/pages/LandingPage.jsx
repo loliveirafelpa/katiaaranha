@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import LogoLotus, { MandalaWatermark } from '../components/brand/LogoLotus'
+import LogoCpa from '../components/brand/LogoCpa'
+import MandalaWatermark from '../components/brand/MandalaWatermark'
 import { colors, fonts } from '../theme'
 
 export default function LandingPage() {
@@ -19,7 +20,7 @@ export default function LandingPage() {
         style={{ bottom: '-140px', left: '-140px' }}
       />
 
-      <LogoLotus size={72} className="relative mb-4" />
+      <LogoCpa height={90} className="relative mb-4" />
 
       <h1 className="text-4xl font-semibold mb-3 relative" style={{ color: colors.secondary, fontFamily: fonts.display }}>
         Diário Miccional

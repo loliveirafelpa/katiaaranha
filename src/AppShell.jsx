@@ -4,7 +4,7 @@ import { supabase } from './lib/supabaseClient'
 import { getPerfilAtual, logout } from './lib/authApi'
 import { obterConsentimentoAtual } from './lib/consentimentosApi'
 import { listarCiclosPorPaciente } from './lib/ciclosDiarioApi'
-import LogoLotus from './components/brand/LogoLotus'
+import LogoCpa from './components/brand/LogoCpa'
 import { colors } from './theme'
 
 export default function AppShell() {
@@ -101,7 +101,7 @@ export default function AppShell() {
         style={{ borderColor: colors.border, background: colors.surface }}
       >
         <Link to="/app" className="flex items-center gap-2 font-semibold" style={{ color: colors.secondary }}>
-          <LogoLotus size={32} />
+          <LogoCpa height={36} />
           Diário Miccional
         </Link>
         <div className="flex items-center gap-4 text-sm">
