@@ -16,7 +16,7 @@ function paraCamel(row) {
     menstruacaoFim: row.menstruacao_fim,
     medicamentosUso: row.medicamentos_uso,
     medicamentosQuais: row.medicamentos_quais,
-    outrosSintomas: row.outros_sintomas,
+    outrosSintomas: row.outros_sintomas || [],
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
   }
@@ -46,7 +46,6 @@ export async function listarObservacoesPorCiclo(cicloId) {
 }
 
 export async function salvarObservacaoDoDia({
-  id,
   cicloId,
   pacienteId,
   diaNumero,
@@ -74,12 +73,16 @@ export async function salvarObservacaoDoDia({
     menstruacao_fim: menstruacaoFim || null,
     medicamentos_uso: medicamentosUso ?? null,
     medicamentos_quais: medicamentosQuais || null,
-    outros_sintomas: outrosSintomas || null,
+    outros_sintomas: outrosSintomas || [],
   }
 
+  // Nunca mandar o id junto: o Postgres tentaria inserir uma linha nova com esse id e
+  // esbarraria na chave primaria antes mesmo de chegar no ON CONFLICT de ciclo_id+dia_numero,
+  // porque esse "on conflict" so cobre aquela constraint especifica, nao a chave primaria.
+  // Isso fazia qualquer segunda gravacao do mesmo dia falhar silenciosamente.
   const { data, error } = await supabase
     .from('observacoes_diarias')
-    .upsert(id ? { id, ...payload } : payload, { onConflict: 'ciclo_id,dia_numero' })
+    .upsert(payload, { onConflict: 'ciclo_id,dia_numero' })
     .select('*')
     .single()
 

@@ -14,7 +14,7 @@ const VAZIO = {
   menstruacaoFim: '',
   medicamentosUso: false,
   medicamentosQuais: '',
-  outrosSintomas: '',
+  outrosSintomas: [],
 }
 
 export default function ObservacoesDiaPage() {
@@ -22,9 +22,9 @@ export default function ObservacoesDiaPage() {
   const { diaNumero } = useParams()
   const navigate = useNavigate()
   const [valor, setValor] = useState(VAZIO)
-  const [existenteId, setExistenteId] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
 
   useEffect(() => {
     let ativo = true
@@ -35,7 +35,6 @@ export default function ObservacoesDiaPage() {
       if (ativo) {
         // Sempre define os dois lados (existe ou nao) - sem isso, trocar de ciclo/dia pra um
         // que ainda nao tem observacao salva deixava os valores do dia anterior no formulario.
-        setExistenteId(existente?.id ?? null)
         setValor(existente ? {
           absorventeUso: existente.absorventeUso || false,
           absorventeTipo: existente.absorventeTipo || '',
@@ -46,7 +45,7 @@ export default function ObservacoesDiaPage() {
           menstruacaoFim: existente.menstruacaoFim || '',
           medicamentosUso: existente.medicamentosUso || false,
           medicamentosQuais: existente.medicamentosQuais || '',
-          outrosSintomas: existente.outrosSintomas || '',
+          outrosSintomas: existente.outrosSintomas || [],
         } : VAZIO)
         setCarregando(false)
       }
@@ -57,9 +56,9 @@ export default function ObservacoesDiaPage() {
 
   async function handleSalvar() {
     setSalvando(true)
+    setErro('')
     try {
       await salvarObservacaoDoDia({
-        id: existenteId,
         cicloId: cicloSelecionado.id,
         pacienteId: perfil.id,
         diaNumero: Number(diaNumero),
@@ -67,6 +66,8 @@ export default function ObservacoesDiaPage() {
         absorventeQuantidade: valor.absorventeQuantidade === '' ? null : Number(valor.absorventeQuantidade),
       })
       navigate('/app/diario')
+    } catch (err) {
+      setErro(err.message || 'Não foi possível salvar. Tente novamente.')
     } finally {
       setSalvando(false)
     }
@@ -88,6 +89,8 @@ export default function ObservacoesDiaPage() {
       </div>
 
       <FormObservacoesDia valor={valor} onChange={setValor} />
+
+      {erro && <p className="text-sm" style={{ color: colors.danger }}>{erro}</p>}
 
       <button
         onClick={handleSalvar}

@@ -1,8 +1,27 @@
+import { useState } from 'react'
 import { colors } from '../theme'
 
+function formatarHorario(iso) {
+  return new Date(iso).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
+
 export default function FormObservacoesDia({ valor, onChange }) {
+  const [textoNovo, setTextoNovo] = useState('')
+
   function set(campo, v) {
     onChange({ ...valor, [campo]: v })
+  }
+
+  function adicionarSintoma() {
+    const texto = textoNovo.trim()
+    if (!texto) return
+    const lista = valor.outrosSintomas || []
+    set('outrosSintomas', [...lista, { texto, horario: new Date().toISOString() }])
+    setTextoNovo('')
+  }
+
+  function removerSintoma(indice) {
+    set('outrosSintomas', (valor.outrosSintomas || []).filter((_, i) => i !== indice))
   }
 
   return (
@@ -99,13 +118,59 @@ export default function FormObservacoesDia({ valor, onChange }) {
 
       <fieldset>
         <legend className="font-medium mb-2">Outros sintomas / observações</legend>
-        <textarea
-          rows={3}
-          value={valor.outrosSintomas || ''}
-          onChange={(e) => set('outrosSintomas', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border text-sm"
-          style={{ borderColor: colors.border }}
-        />
+        <p className="text-xs mb-2" style={{ color: colors.textSecondary }}>
+          Pode adicionar quantas observações quiser ao longo do dia.
+        </p>
+
+        {(valor.outrosSintomas || []).length > 0 && (
+          <ul className="space-y-2 mb-3">
+            {valor.outrosSintomas.map((item, indice) => (
+              <li
+                key={`${item.horario}-${indice}`}
+                className="flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-sm"
+                style={{ borderColor: colors.border }}
+              >
+                <div>
+                  <p className="text-xs" style={{ color: colors.textSecondary }}>{formatarHorario(item.horario)}</p>
+                  <p>{item.texto}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removerSintoma(indice)}
+                  className="text-xs underline shrink-0"
+                  style={{ color: colors.danger }}
+                >
+                  Remover
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Descreva uma observação"
+            value={textoNovo}
+            onChange={(e) => setTextoNovo(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                adicionarSintoma()
+              }
+            }}
+            className="flex-1 px-3 py-2 rounded-lg border text-sm"
+            style={{ borderColor: colors.border }}
+          />
+          <button
+            type="button"
+            onClick={adicionarSintoma}
+            className="px-3 py-2 rounded-lg text-sm font-medium text-white"
+            style={{ background: colors.primary }}
+          >
+            Adicionar
+          </button>
+        </div>
       </fieldset>
     </div>
   )
