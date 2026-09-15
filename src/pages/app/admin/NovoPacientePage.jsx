@@ -41,12 +41,12 @@ export default function NovoPacientePage() {
       <div className="max-w-md mx-auto rounded-2xl p-6" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
         <h1 className="text-lg font-semibold mb-3" style={{ color: colors.secondary }}>Paciente criado</h1>
         <p className="text-sm mb-4" style={{ color: colors.textSecondary }}>
-          Repasse estas credenciais ao paciente. Elas não ficam salvas em nenhum lugar — anote
-          agora.
+          Repasse estas credenciais ao paciente. Peça pra ele trocar a senha assim que entrar
+          pela primeira vez, na tela "Meus dados".
         </p>
         <div className="rounded-lg p-4 mb-4 text-sm space-y-1" style={{ background: colors.background }}>
           <p><strong>E-mail:</strong> {resultado.email}</p>
-          <p><strong>Senha temporária:</strong> {resultado.senhaTemporaria}</p>
+          <p><strong>Senha de primeiro acesso:</strong> {resultado.senhaTemporaria}</p>
         </div>
         <Link to="/app/admin/pacientes" className="underline text-sm" style={{ color: colors.primary }}>
           Voltar para a lista de pacientes
