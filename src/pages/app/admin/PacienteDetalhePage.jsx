@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useOutletContext, useParams } from 'react-router-dom'
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { obterPacientePorId } from '../../../lib/perfisApi'
+import { solicitarExclusaoPaciente } from '../../../lib/pacientesApi'
 import { listarCiclosPorPaciente, criarCiclo, calcularDiaAtual, calcularStatusCiclo } from '../../../lib/ciclosDiarioApi'
 import { listarEntradasPorCiclo } from '../../../lib/entradasDiarioApi'
 import { listarObservacoesPorCiclo } from '../../../lib/observacoesApi'
@@ -15,6 +16,7 @@ import {
 import TabelaDiariaEstiloPapel from '../../../components/TabelaDiariaEstiloPapel'
 import NotaClinicaForm from '../../../components/NotaClinicaForm'
 import StatusCicloBadge from '../../../components/StatusCicloBadge'
+import ModalConfirmacaoExclusao from '../../../components/ModalConfirmacaoExclusao'
 import { labelServico } from '../../../data/servicos'
 import { ATIVIDADES_PERDA } from '../../../data/atividadesPerda'
 import { colors } from '../../../theme'
@@ -71,11 +73,11 @@ function LegendaSeveridade() {
   )
 }
 
-function BarraSeveridadeDia({ diaNumero, contagem, maximo }) {
+function BarraSeveridadeDia({ label, contagem, maximo }) {
   const total = contagem.pequena + contagem.moderada + contagem.intensa
   return (
     <div className="flex items-center gap-3 text-sm mb-1.5">
-      <span className="w-16 shrink-0" style={{ color: colors.textSecondary }}>Dia {diaNumero}</span>
+      <span className="w-16 shrink-0" style={{ color: colors.textSecondary }}>{label}</span>
       <div className="flex-1 h-5 rounded-full overflow-hidden flex" style={{ background: colors.border }}>
         {total > 0 && ['pequena', 'moderada', 'intensa'].map((chave) => (
           contagem[chave] > 0 && (
@@ -111,9 +113,19 @@ function CelulaCalor({ valor, maximo, cor }) {
   )
 }
 
+// Converte o numero do dia do ciclo pra data de calendario de verdade (ex.: "15/09/26"),
+// pra facilitar a leitura pra profissional em vez de um numero abstrato tipo "Dia 3".
+function formatarDataDoDia(cicloSelecionado, diaNumero) {
+  if (!cicloSelecionado) return `Dia ${diaNumero}`
+  const data = new Date(`${cicloSelecionado.dataInicio}T00:00:00`)
+  data.setDate(data.getDate() + diaNumero - 1)
+  return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
+
 export default function PacienteDetalhePage() {
   const { perfil } = useOutletContext()
   const { id } = useParams()
+  const navigate = useNavigate()
 
   const [paciente, setPaciente] = useState(null)
   const [ciclos, setCiclos] = useState([])
@@ -128,6 +140,8 @@ export default function PacienteDetalhePage() {
   const [novaDataInicio, setNovaDataInicio] = useState(() => new Date().toISOString().slice(0, 10))
   const [criandoCiclo, setCriandoCiclo] = useState(false)
   const [erroCiclo, setErroCiclo] = useState('')
+  const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false)
+  const [excluindoPaciente, setExcluindoPaciente] = useState(false)
 
   const carregarBase = useCallback(async () => {
     setCarregando(true)
@@ -214,6 +228,16 @@ export default function PacienteDetalhePage() {
     setNotas((atual) => atual.filter((n) => n.id !== notaId))
   }
 
+  async function handleExcluirPaciente() {
+    setExcluindoPaciente(true)
+    try {
+      await solicitarExclusaoPaciente(id)
+      navigate('/app/admin/pacientes', { replace: true })
+    } finally {
+      setExcluindoPaciente(false)
+    }
+  }
+
   if (carregando || !paciente) {
     return <p style={{ color: colors.textSecondary }}>Carregando...</p>
   }
@@ -254,7 +278,16 @@ export default function PacienteDetalhePage() {
             {paciente.contato ? ` · ${paciente.contato}` : ''}
           </p>
         </div>
-        {cicloSelecionado && <StatusCicloBadge status={status} diaAtual={diaAtual} />}
+        <div className="flex items-center gap-3">
+          {cicloSelecionado && <StatusCicloBadge status={status} diaAtual={diaAtual} />}
+          <button
+            onClick={() => setModalExclusaoAberto(true)}
+            className="text-xs underline"
+            style={{ color: colors.danger }}
+          >
+            Excluir paciente
+          </button>
+        </div>
       </div>
 
       {ciclos.length > 1 && (
@@ -320,6 +353,9 @@ export default function PacienteDetalhePage() {
 
           {aba === 'graficos' && (
             <div className="space-y-6">
+              <p className="text-sm" style={{ color: colors.textSecondary }}>
+                Os números abaixo somam o ciclo inteiro selecionado, do início até hoje — não são o total de um dia isolado.
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <CardDestaque valor={`${totalLiquidoIngeridoMl} ml`} label="Total de líquido ingerido" />
                 <CardDestaque valor={totalRegistrosUrina} label="Total de registros de urina" />
@@ -346,7 +382,7 @@ export default function PacienteDetalhePage() {
                     <tbody>
                       {balanco.map((b) => (
                         <tr key={b.diaNumero} className="border-t" style={{ borderColor: colors.border }}>
-                          <td className="py-1">Dia {b.diaNumero}</td>
+                          <td className="py-1">{formatarDataDoDia(cicloSelecionado, b.diaNumero)}</td>
                           <td className="py-1">{b.ingeridoMl} ml</td>
                           <td className="py-1">{b.urinadoMl} ml</td>
                           <td className="py-1">{b.saldoMl} ml</td>
@@ -370,7 +406,7 @@ export default function PacienteDetalhePage() {
                     {resumoPorDia.map((r) => (
                       <BarraSeveridadeDia
                         key={r.diaNumero}
-                        diaNumero={r.diaNumero}
+                        label={formatarDataDoDia(cicloSelecionado, r.diaNumero)}
                         contagem={r.contagemUrgencia}
                         maximo={maxUrgenciaPorDia}
                       />
@@ -397,7 +433,7 @@ export default function PacienteDetalhePage() {
                     <tbody>
                       {resumoPorDia.map((r) => (
                         <tr key={r.diaNumero} className="border-t" style={{ borderColor: colors.border }}>
-                          <td className="py-1">Dia {r.diaNumero}</td>
+                          <td className="py-1">{formatarDataDoDia(cicloSelecionado, r.diaNumero)}</td>
                           <td className="py-1">{r.contagemPerda.pequena}</td>
                           <td className="py-1">{r.contagemPerda.moderada}</td>
                           <td className="py-1">{r.contagemPerda.intensa}</td>
@@ -484,7 +520,18 @@ export default function PacienteDetalhePage() {
                     <p style={{ color: colors.textSecondary }}>
                       Medicamentos: {o.medicamentosUso ? o.medicamentosQuais || 'sim' : 'não'}
                     </p>
-                    {o.outrosSintomas && <p style={{ color: colors.textSecondary }}>Sintomas: {o.outrosSintomas}</p>}
+                    {o.outrosSintomas?.length > 0 && (
+                      <div style={{ color: colors.textSecondary }}>
+                        <p>Sintomas/observações:</p>
+                        <ul className="list-disc pl-5">
+                          {o.outrosSintomas.map((item, indice) => (
+                            <li key={indice}>
+                              {new Date(item.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} — {item.texto}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -561,6 +608,15 @@ export default function PacienteDetalhePage() {
           )}
         </>
       )}
+
+      <ModalConfirmacaoExclusao
+        aberto={modalExclusaoAberto}
+        titulo="Excluir paciente"
+        mensagem={`Isso vai anonimizar os dados de identificação de ${paciente.nomeCompleto} e remover o acesso dela ao sistema. Os registros do diário e as notas clínicas continuam guardados. Essa ação não pode ser desfeita. Deseja continuar?`}
+        onConfirmar={handleExcluirPaciente}
+        onCancelar={() => setModalExclusaoAberto(false)}
+        confirmando={excluindoPaciente}
+      />
     </div>
   )
 }
