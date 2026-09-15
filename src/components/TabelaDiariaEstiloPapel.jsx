@@ -1,3 +1,4 @@
+import { GlassWater, Toilet, Droplet } from 'lucide-react'
 import { colors } from '../theme'
 import { labelAtividadePerda } from '../data/atividadesPerda'
 
@@ -20,6 +21,14 @@ const COR_TIPO = {
   liquido: colors.secondary,
   urinario: colors.primary,
   perda: colors.danger,
+}
+
+// Copo cheio pra liquido ingerido, vaso sanitario pra ida ao banheiro, gota pra perda -
+// usados na linha do tempo no lugar do rotulo escrito, pra ficar rapido de escanear.
+const ICONE_TIPO = {
+  liquido: GlassWater,
+  urinario: Toilet,
+  perda: Droplet,
 }
 
 function formatarHora(iso) {
@@ -69,21 +78,23 @@ function LinhaDoTempo({ entradas }) {
       <p className="text-xs font-medium mb-3" style={{ color: colors.textSecondary }}>Linha do tempo</p>
       <div className="overflow-x-auto">
         <div className="relative flex" style={{ minWidth: `${ordenado.length * 84}px` }}>
-          <div className="absolute left-0 right-0 top-[7px] h-px" style={{ background: colors.border }} />
-          {ordenado.map((e) => (
-            <div key={e.id} className="flex-1 flex flex-col items-center text-center px-1">
-              <span
-                className="w-3.5 h-3.5 rounded-full border-2 relative"
-                style={{ background: colors.surface, borderColor: COR_TIPO[e.tipoEvento] }}
-              />
-              <span className="text-xs font-medium mt-1.5 whitespace-nowrap" style={{ color: COR_TIPO[e.tipoEvento] }}>
-                {formatarSoHora(e.registradoEm)}
-              </span>
-              <span className="text-[11px] whitespace-nowrap" style={{ color: colors.textSecondary }}>
-                {LABEL_TIPO[e.tipoEvento] || e.tipoEvento}
-              </span>
-            </div>
-          ))}
+          <div className="absolute left-0 right-0 top-3 h-px" style={{ background: colors.border }} />
+          {ordenado.map((e) => {
+            const Icone = ICONE_TIPO[e.tipoEvento]
+            return (
+              <div key={e.id} className="flex-1 flex flex-col items-center text-center px-1">
+                <span
+                  className="w-6 h-6 rounded-full border-2 relative flex items-center justify-center"
+                  style={{ background: colors.surface, borderColor: COR_TIPO[e.tipoEvento] }}
+                >
+                  {Icone && <Icone size={13} strokeWidth={2.25} color={COR_TIPO[e.tipoEvento]} />}
+                </span>
+                <span className="text-xs font-medium mt-1.5 whitespace-nowrap" style={{ color: COR_TIPO[e.tipoEvento] }}>
+                  {formatarSoHora(e.registradoEm)}
+                </span>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
