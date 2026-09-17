@@ -18,6 +18,7 @@ Dois tipos de acesso:
 - Registra 3 tipos de evento a qualquer hora do dia: líquido ingerido, foi ao banheiro (volume em ml é opcional — dá pra registrar só "baixo/médio/alto"), e perda de urina (com intensidade e o que estava fazendo na hora, inclusive texto livre).
 - Pode ter mais de um ciclo de acompanhamento ao longo do tempo (por exemplo, um ciclo agora e outro daqui a um mês) e troca entre eles por um menu no topo da tela.
 - Preenche um formulário rápido de observações do dia (absorvente, menstruação, medicamentos, outros sintomas).
+- Vê os dias anteriores do diário (não só o dia atual) e pode editar ou excluir qualquer registro já feito, não só o de hoje.
 - Tela "Meus dados": revoga o consentimento de uso de dado de saúde ou pede exclusão da própria conta.
 
 **Admin (Dra. Kátia):**
@@ -33,14 +34,16 @@ Dois tipos de acesso:
 
 ## O que falta / decisões em aberto
 
-- **Publicar o site de verdade.** Hoje só roda no computador de quem está desenvolvendo — falta conectar num serviço de hospedagem (Vercel) pra ter um link de verdade pra Dra. Kátia e as pacientes acessarem.
+- **Bug de troca de conta na mesma aba.** Se alguém sai (logout) e loga com outra conta sem recarregar a página, o cabeçalho às vezes fica preso mostrando o nome/perfil da conta anterior (ex.: continua mostrando "Dra. Kátia Aranha · Admin" mesmo já logado como paciente). Confirmado em produção em 17/09/2026. Abrir uma aba nova (ou dar F5) entre um login e outro evita o problema — é o que orientamos pra demonstração pra Dra. Kátia. A causa provável está no carregamento do perfil em `src/AppShell.jsx`. Ainda não investigado/corrigido a fundo.
 - **Prazo de retenção do dado.** Precisa decidir com a Dra. Kátia: depois que uma paciente para de usar o sistema, por quanto tempo o dado dela fica guardado? Isso ainda não está definido nem aplicado.
 - **Exportar dados.** A paciente ainda não tem um botão pra baixar/exportar os próprios dados (só ver, corrigir contato e apagar a conta).
 - **Resumo automático por IA** foi cogitado (a Dra. Kátia teria um resumo gerado automaticamente sobre cada paciente) — decidimos **não fazer isso por enquanto**.
-- Ainda não tem domínio próprio configurado (algo como `diario.cpafisio.com.br`) — depende do deploy acontecer primeiro.
+- Ainda não tem domínio próprio configurado (algo como `diario.cpafisio.com.br`) — hoje usa o domínio padrão do Vercel.
 
 ## Trabalho recente (mais a mais recente)
 
+- **Deploy publicado no Vercel**, conectado ao GitHub (repositório `loliveirafelpa/katiaaranha`): https://katiaaranha-ghx5.vercel.app — testado em produção com login de admin e de paciente reais em 17/09/2026.
+- Paciente agora vê dias anteriores do diário (não só o de hoje) e pode editar ou excluir qualquer registro já feito.
 - Regra impedindo dois ciclos com datas conflitantes pro mesmo paciente.
 - Linha do tempo horizontal (só horário + tipo, sem detalhe) ao final de cada dia no diário do admin, mais o menu de ordenar por horário ou por tipo.
 - Correção de um bug real: trocar de ciclo no menu do paciente não atualizava os dados quando o ciclo escolhido ainda não tinha começado (ficava mostrando dado do ciclo anterior).

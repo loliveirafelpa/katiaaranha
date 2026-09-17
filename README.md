@@ -2,6 +2,8 @@
 
 Sistema de diário miccional digital para acompanhamento fisioterapêutico do assoalho pélvico, feito para a Dra. Kátia Aranha (CPA Fisioterapia — Campinas/Jundiaí). Paciente registra hábitos urinários pelo celular; a profissional acompanha pelo painel de admin.
 
+**Em produção:** https://katiaaranha-ghx5.vercel.app (deploy automático a cada push na branch `main`, via Vercel conectado ao GitHub).
+
 ## Stack
 
 - **Frontend:** React 18 + Vite + Tailwind CSS 4
@@ -75,7 +77,7 @@ Ambas rodam com a service role key (nunca exposta ao frontend) e conferem o toke
 
 ## O que ainda falta
 
-- **Deploy:** repositório no GitHub existe, mas ainda não há `vercel.json` nem projeto conectado no Vercel — o site só roda localmente até aqui.
+- **Bug de troca de conta na mesma aba:** sair (logout) e logar com outra conta sem recarregar a página pode deixar o cabeçalho preso mostrando o perfil da conta anterior. A causa provável está no carregamento do perfil em `src/AppShell.jsx` (efeito que recarrega `perfil` a cada mudança de rota, com uma possível corrida entre chamadas concorrentes). Contorno confirmado: abrir aba nova ou dar F5 entre logins. Ainda não corrigido.
 - **Retenção de dado (LGPD):** existe a coluna `anonimizado_em` em `profiles`, mas nenhuma rotina automática aplica um prazo de retenção de verdade ainda — isso precisa ser definido com a Dra. Kátia e implementado.
 - **Exportação de dados pelo paciente:** o paciente pode ver, corrigir contato e apagar a própria conta, mas ainda não existe um botão de "exportar meus dados".
 - **Resumo por IA:** foi cogitado e descartado por enquanto (decisão da Dra. Kátia) — não está implementado.
