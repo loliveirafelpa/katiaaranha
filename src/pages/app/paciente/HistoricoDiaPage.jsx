@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
 import { listarEntradasPorDia } from '../../../lib/entradasDiarioApi'
-import TabelaDiariaEstiloPapel from '../../../components/TabelaDiariaEstiloPapel'
+import ListaEntradasComAcoes from '../../../components/ListaEntradasComAcoes'
 import { colors } from '../../../theme'
 
 export default function HistoricoDiaPage() {
@@ -10,26 +10,18 @@ export default function HistoricoDiaPage() {
   const [carregando, setCarregando] = useState(true)
   const [entradas, setEntradas] = useState([])
 
-  useEffect(() => {
-    let ativo = true
-    async function carregar() {
-      setCarregando(true)
-      if (!cicloSelecionado) {
-        if (ativo) {
-          setEntradas([])
-          setCarregando(false)
-        }
-        return
-      }
-      const lista = await listarEntradasPorDia(cicloSelecionado.id, Number(diaNumero))
-      if (ativo) {
-        setEntradas(lista)
-        setCarregando(false)
-      }
+  const carregar = useCallback(async () => {
+    setCarregando(true)
+    if (!cicloSelecionado) {
+      setEntradas([])
+      setCarregando(false)
+      return
     }
-    carregar()
-    return () => { ativo = false }
+    setEntradas(await listarEntradasPorDia(cicloSelecionado.id, Number(diaNumero)))
+    setCarregando(false)
   }, [cicloSelecionado, diaNumero])
+
+  useEffect(() => { carregar() }, [carregar])
 
   return (
     <div className="space-y-4">
@@ -43,7 +35,11 @@ export default function HistoricoDiaPage() {
         <p style={{ color: colors.textSecondary }}>Carregando...</p>
       ) : (
         <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-          <TabelaDiariaEstiloPapel entradas={entradas} />
+          <ListaEntradasComAcoes
+            entradas={entradas}
+            mensagemVazia="Nenhum registro nesse dia."
+            onAlterado={carregar}
+          />
         </div>
       )}
     </div>

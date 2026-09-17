@@ -29,6 +29,7 @@ export default function App() {
 
         <Route path="diario" element={<DiarioAtualPage />} />
         <Route path="diario/nova-entrada/:tipo" element={<NovaEntradaPage />} />
+        <Route path="diario/entrada/:id/editar" element={<NovaEntradaPage />} />
         <Route path="diario/dia/:diaNumero" element={<HistoricoDiaPage />} />
         <Route path="diario/dia/:diaNumero/observacoes" element={<ObservacoesDiaPage />} />
 

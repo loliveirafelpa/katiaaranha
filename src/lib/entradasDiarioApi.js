@@ -45,31 +45,21 @@ export async function listarEntradasPorDia(cicloId, diaNumero) {
   return data.map(paraCamel)
 }
 
-// Cada entrada representa UM evento pontual de um unico tipo - liquido ingerido,
-// ida ao banheiro (volume urinado) ou perda involuntaria - nunca uma combinacao,
-// porque na vida real esses eventos nao acontecem todos no mesmo instante.
-export async function criarEntrada({
-  cicloId,
-  pacienteId,
-  registradoEm,
-  diaNumero,
-  tipoEvento,
-  liquidoTipo,
-  liquidoTipoOutro,
-  liquidoMl,
-  volumeUrinadoMl,
-  volumeUrinadoNivel,
-  urgencia,
-  perda,
-  perdaAtividadeCategoria,
-  perdaAtividadeDetalhe,
-}) {
-  const base = {
-    ciclo_id: cicloId,
-    paciente_id: pacienteId,
-    registrado_em: registradoEm,
-    dia_numero: diaNumero,
-    tipo_evento: tipoEvento,
+export async function buscarEntrada(id) {
+  const { data, error } = await supabase
+    .from('entradas_diario')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return paraCamel(data)
+}
+
+// So os campos do tipo de evento em questao ficam preenchidos (os demais vao null) -
+// usado tanto pra criar quanto pra editar uma entrada, ja que os dois montam o mesmo formato.
+function camposPorTipo(tipoEvento, campos) {
+  const vazio = {
     liquido_tipo: null,
     liquido_tipo_outro: null,
     liquido_ml: null,
@@ -81,31 +71,61 @@ export async function criarEntrada({
     perda_atividade_detalhe: null,
   }
 
-  let payload = base
   if (tipoEvento === 'liquido') {
-    payload = {
-      ...base,
-      liquido_tipo: liquidoTipo,
-      liquido_tipo_outro: liquidoTipoOutro || null,
-      liquido_ml: liquidoMl,
+    return {
+      ...vazio,
+      liquido_tipo: campos.liquidoTipo,
+      liquido_tipo_outro: campos.liquidoTipoOutro || null,
+      liquido_ml: campos.liquidoMl,
     }
-  } else if (tipoEvento === 'urinario') {
-    payload = {
-      ...base,
-      volume_urinado_ml: volumeUrinadoMl,
-      volume_urinado_nivel: volumeUrinadoNivel || null,
-      urgencia: urgencia || null,
+  }
+  if (tipoEvento === 'urinario') {
+    return {
+      ...vazio,
+      volume_urinado_ml: campos.volumeUrinadoMl,
+      volume_urinado_nivel: campos.volumeUrinadoNivel || null,
+      urgencia: campos.urgencia || null,
     }
-  } else if (tipoEvento === 'perda') {
-    payload = {
-      ...base,
-      perda,
-      perda_atividade_categoria: perdaAtividadeCategoria || null,
-      perda_atividade_detalhe: perdaAtividadeDetalhe || null,
+  }
+  if (tipoEvento === 'perda') {
+    return {
+      ...vazio,
+      perda: campos.perda,
+      perda_atividade_categoria: campos.perdaAtividadeCategoria || null,
+      perda_atividade_detalhe: campos.perdaAtividadeDetalhe || null,
     }
+  }
+  return vazio
+}
+
+// Cada entrada representa UM evento pontual de um unico tipo - liquido ingerido,
+// ida ao banheiro (volume urinado) ou perda involuntaria - nunca uma combinacao,
+// porque na vida real esses eventos nao acontecem todos no mesmo instante.
+export async function criarEntrada({ cicloId, pacienteId, registradoEm, diaNumero, tipoEvento, ...campos }) {
+  const payload = {
+    ciclo_id: cicloId,
+    paciente_id: pacienteId,
+    registrado_em: registradoEm,
+    dia_numero: diaNumero,
+    tipo_evento: tipoEvento,
+    ...camposPorTipo(tipoEvento, campos),
   }
 
   const { data, error } = await supabase.from('entradas_diario').insert(payload).select('*').single()
+
+  if (error) throw error
+  return paraCamel(data)
+}
+
+export async function atualizarEntrada(id, { registradoEm, diaNumero, tipoEvento, ...campos }) {
+  const payload = {
+    registrado_em: registradoEm,
+    dia_numero: diaNumero,
+    tipo_evento: tipoEvento,
+    ...camposPorTipo(tipoEvento, campos),
+  }
+
+  const { data, error } = await supabase.from('entradas_diario').update(payload).eq('id', id).select('*').single()
 
   if (error) throw error
   return paraCamel(data)

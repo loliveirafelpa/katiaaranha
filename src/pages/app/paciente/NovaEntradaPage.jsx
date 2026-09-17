@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { calcularDiaNumeroPara } from '../../../lib/ciclosDiarioApi'
-import { criarEntrada } from '../../../lib/entradasDiarioApi'
+import { atualizarEntrada, buscarEntrada, criarEntrada } from '../../../lib/entradasDiarioApi'
 import ChipSeletorLiquido from '../../../components/ChipSeletorLiquido'
 import AtalhosVolume from '../../../components/AtalhosVolume'
 import SeletorSeveridade from '../../../components/SeletorSeveridade'
@@ -39,8 +39,13 @@ function mensagemForaDoCiclo(ciclo) {
 
 export default function NovaEntradaPage() {
   const { perfil, cicloSelecionado: ciclo } = useOutletContext()
-  const { tipo } = useParams()
+  const { tipo: tipoDaRota, id } = useParams()
   const navigate = useNavigate()
+  const modoEdicao = !!id
+
+  const [tipo, setTipo] = useState(tipoDaRota || null)
+  const [carregandoEntrada, setCarregandoEntrada] = useState(modoEdicao)
+  const [entradaNaoEncontrada, setEntradaNaoEncontrada] = useState(false)
 
   const [horario, setHorario] = useState(agoraParaInputLocal())
 
@@ -62,8 +67,49 @@ export default function NovaEntradaPage() {
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
 
-  if (!TIPOS_VALIDOS.includes(tipo) || !ciclo) {
+  // No modo edicao, o tipo do evento nao vem da rota - vem da propria entrada
+  // carregada do banco, ja que aqui so se corrige um registro existente.
+  useEffect(() => {
+    if (!modoEdicao) return
+    let ativo = true
+    buscarEntrada(id)
+      .then((entrada) => {
+        if (!ativo) return
+        setTipo(entrada.tipoEvento)
+        const dataLocal = new Date(entrada.registradoEm)
+        dataLocal.setMinutes(dataLocal.getMinutes() - dataLocal.getTimezoneOffset())
+        setHorario(dataLocal.toISOString().slice(0, 16))
+        if (entrada.tipoEvento === 'liquido') {
+          setLiquidoTipo(entrada.liquidoTipo)
+          setLiquidoTipoOutro(entrada.liquidoTipoOutro || '')
+          setLiquidoMl(entrada.liquidoMl ?? '')
+        } else if (entrada.tipoEvento === 'urinario') {
+          setVolumeUrinadoMl(entrada.volumeUrinadoMl ?? '')
+          setVolumeUrinadoNivel(entrada.volumeUrinadoNivel || '')
+          setUrgencia(entrada.urgencia || '')
+        } else if (entrada.tipoEvento === 'perda') {
+          setPerda(entrada.perda)
+          setPerdaCategoria(entrada.perdaAtividadeCategoria || '')
+          setPerdaDetalhe(entrada.perdaAtividadeDetalhe || '')
+        }
+        setCarregandoEntrada(false)
+      })
+      .catch(() => {
+        if (!ativo) return
+        setEntradaNaoEncontrada(true)
+        setCarregandoEntrada(false)
+      })
+    return () => { ativo = false }
+  }, [id, modoEdicao])
+
+  if (!modoEdicao && (!TIPOS_VALIDOS.includes(tipoDaRota) || !ciclo)) {
     return <Navigate to="/app/diario" replace />
+  }
+  if (modoEdicao && entradaNaoEncontrada) {
+    return <Navigate to="/app/diario" replace />
+  }
+  if (modoEdicao && (carregandoEntrada || !ciclo)) {
+    return <p style={{ color: colors.textSecondary }}>Carregando...</p>
   }
 
   async function handleSubmit(e) {
@@ -83,26 +129,30 @@ export default function NovaEntradaPage() {
       return
     }
 
+    const dadosEntrada = {
+      registradoEm,
+      diaNumero,
+      tipoEvento: tipo,
+      liquidoTipo,
+      liquidoTipoOutro,
+      liquidoMl: liquidoMl === '' ? null : Number(liquidoMl),
+      volumeUrinadoMl: volumeUrinadoMl === '' ? null : Number(volumeUrinadoMl),
+      volumeUrinadoNivel,
+      urgencia: urgencia || null,
+      perda,
+      perdaAtividadeCategoria: perdaCategoria,
+      perdaAtividadeDetalhe: perdaDetalhe,
+    }
+
     setSalvando(true)
     try {
-      await criarEntrada({
-        cicloId: ciclo.id,
-        pacienteId: perfil.id,
-        registradoEm,
-        diaNumero,
-        tipoEvento: tipo,
-        liquidoTipo,
-        liquidoTipoOutro,
-        liquidoMl: liquidoMl === '' ? null : Number(liquidoMl),
-        volumeUrinadoMl: volumeUrinadoMl === '' ? null : Number(volumeUrinadoMl),
-        volumeUrinadoNivel,
-        urgencia: urgencia || null,
-        perda,
-        perdaAtividadeCategoria: perdaCategoria,
-        perdaAtividadeDetalhe: perdaDetalhe,
-      })
-
-      navigate('/app/diario', { replace: true })
+      if (modoEdicao) {
+        await atualizarEntrada(id, dadosEntrada)
+        navigate(-1)
+      } else {
+        await criarEntrada({ cicloId: ciclo.id, pacienteId: perfil.id, ...dadosEntrada })
+        navigate('/app/diario', { replace: true })
+      }
     } catch (err) {
       if (err.message?.includes('entradas_diario_dia_numero_check')) {
         setErro(mensagemForaDoCiclo(ciclo))
@@ -120,7 +170,9 @@ export default function NovaEntradaPage() {
       className="max-w-lg mx-auto rounded-2xl p-6 space-y-6"
       style={{ background: colors.surface, border: `1px solid ${colors.border}` }}
     >
-      <h1 className="text-lg font-semibold" style={{ color: colors.secondary }}>{TITULO_POR_TIPO[tipo]}</h1>
+      <h1 className="text-lg font-semibold" style={{ color: colors.secondary }}>
+        {modoEdicao ? 'Editar registro' : TITULO_POR_TIPO[tipo]}
+      </h1>
 
       <div>
         <label className="block text-sm font-medium mb-1">Horário</label>
@@ -209,14 +261,26 @@ export default function NovaEntradaPage() {
 
       {erro && <p className="text-sm" style={{ color: colors.danger }}>{erro}</p>}
 
-      <button
-        type="submit"
-        disabled={salvando}
-        className="w-full py-2 rounded-lg font-medium text-white disabled:opacity-60"
-        style={{ background: colors.primary }}
-      >
-        {salvando ? 'Salvando...' : 'Salvar registro'}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={salvando}
+          className="flex-1 py-2 rounded-lg font-medium text-white disabled:opacity-60"
+          style={{ background: colors.primary }}
+        >
+          {salvando ? 'Salvando...' : 'Salvar registro'}
+        </button>
+        {modoEdicao && (
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="py-2 px-4 rounded-lg text-sm underline"
+            style={{ color: colors.textSecondary }}
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
     </form>
   )
 }
