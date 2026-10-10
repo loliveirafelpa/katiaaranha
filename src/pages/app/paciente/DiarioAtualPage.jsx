@@ -1,13 +1,21 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Link, useOutletContext } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { calcularDiaAtual } from '../../../lib/ciclosDiarioApi'
 import { listarEntradasPorDia } from '../../../lib/entradasDiarioApi'
 import IndicadorDiaXdeN from '../../../components/IndicadorDiaXdeN'
 import ListaEntradasComAcoes from '../../../components/ListaEntradasComAcoes'
 import { colors } from '../../../theme'
 
+// Data (dd/mm) do dia N do ciclo - o dia 1 e a data de inicio.
+function dataDoDia(ciclo, n) {
+  const data = new Date(`${ciclo.dataInicio}T00:00:00`)
+  data.setDate(data.getDate() + n - 1)
+  return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+}
+
 export default function DiarioAtualPage() {
   const { cicloSelecionado } = useOutletContext()
+  const navigate = useNavigate()
   const [carregando, setCarregando] = useState(true)
   const [entradas, setEntradas] = useState([])
 
@@ -68,18 +76,11 @@ export default function DiarioAtualPage() {
           + Líquido
         </Link>
         <Link
-          to="/app/diario/nova-entrada/urinario"
+          to="/app/diario/nova-entrada/banheiro"
           className="px-4 py-2 rounded-xl font-medium text-white text-sm"
           style={{ background: colors.primary }}
         >
-          + Fiz xixi
-        </Link>
-        <Link
-          to="/app/diario/nova-entrada/intestinal"
-          className="px-4 py-2 rounded-xl font-medium text-white text-sm"
-          style={{ background: colors.accent }}
-        >
-          + Fiz cocô
+          + Fui ao banheiro
         </Link>
         <Link
           to="/app/diario/nova-entrada/perda"
@@ -113,18 +114,21 @@ export default function DiarioAtualPage() {
           <h2 className="text-sm font-semibold mb-2" style={{ color: colors.textSecondary }}>
             Dias anteriores
           </h2>
-          <div className="flex flex-wrap gap-2">
+          {/* Seletor fechado em vez de um botao por dia: com o ciclo avancando, a lista
+              de botoes crescia e ocupava a tela inteira. */}
+          <select
+            value=""
+            onChange={(e) => e.target.value && navigate(`/app/diario/dia/${e.target.value}`)}
+            className="w-full sm:w-auto px-3 py-2 rounded-lg border text-sm"
+            style={{ borderColor: colors.border, color: colors.secondary, background: colors.surface }}
+          >
+            <option value="">Escolha um dia...</option>
             {Array.from({ length: diaAtual - 1 }, (_, i) => diaAtual - 1 - i).map((n) => (
-              <Link
-                key={n}
-                to={`/app/diario/dia/${n}`}
-                className="px-3 py-1.5 rounded-full text-sm border font-medium"
-                style={{ borderColor: colors.border, color: colors.secondary }}
-              >
-                Dia {n}
-              </Link>
+              <option key={n} value={n}>
+                Dia {n} — {dataDoDia(cicloSelecionado, n)}
+              </option>
             ))}
-          </div>
+          </select>
         </div>
       )}
     </div>

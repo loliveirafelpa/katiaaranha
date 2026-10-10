@@ -15,10 +15,10 @@ Dois tipos de acesso:
 ## Estado atual — o que já funciona
 
 **Paciente:**
-- Registra 4 tipos de evento a qualquer hora do dia: líquido ingerido, fez xixi (volume em ml é opcional — dá pra registrar só "baixo/médio/alto"), fez cocô (classificação pela Escala de Bristol, 1 a 7), e perda de urina (com intensidade e o que estava fazendo na hora, inclusive texto livre).
+- Registra 4 tipos de evento a qualquer hora do dia (xixi e cocô ficam juntos no botão "Fui ao banheiro", no mesmo quadro): líquido ingerido, fez xixi (volume em ml é opcional — dá pra registrar só "baixo/médio/alto"), fez cocô (classificação pela Escala de Bristol, 1 a 7), e perda de urina (com intensidade e o que estava fazendo na hora, inclusive texto livre).
 - Pode ter mais de um ciclo de acompanhamento ao longo do tempo (por exemplo, um ciclo agora e outro daqui a um mês) e troca entre eles por um menu no topo da tela.
 - Preenche um formulário rápido de observações do dia (absorvente, menstruação, medicamentos, outros sintomas).
-- Vê os dias anteriores do diário (não só o dia atual) e pode editar ou excluir qualquer registro já feito, não só o de hoje.
+- Vê os dias anteriores do diário (não só o dia atual, escolhendo num seletor) e pode editar ou excluir qualquer registro já feito, não só o de hoje.
 - Tela "Meus dados": revoga o consentimento de uso de dado de saúde ou pede exclusão da própria conta.
 
 **Admin (Dra. Kátia):**
@@ -42,6 +42,8 @@ Dois tipos de acesso:
 
 ## Trabalho recente (mais a mais recente)
 
+- **"Dias anteriores" virou um seletor fechado** (com a data de cada dia) em vez de um botão por dia.
+- **Xixi e cocô voltaram a ficar juntos no botão "Fui ao banheiro"**: um quadro só, com as duas partes em sequência; continua salvando um registro de cada tipo.
 - **Idade, peso e meta de líquido recomendada** no cadastro de paciente (admin), pedido depois da demonstração. A ficha do paciente agora mostra um 4º destaque nos Gráficos com a meta calculada por faixa etária.
 - **Ilustrações na Escala de Bristol** ao lado de cada tipo, no registro de "Fiz cocô" — pedido depois de testar a funcionalidade nova.
 - **Novo tipo de registro: "Fiz cocô"**, pedido pela Dra. Kátia depois da demonstração. Botão "Fui ao banheiro" virou "Fiz xixi" e "Fiz cocô" pra diferenciar. Classificação usa a Escala de Bristol (1 a 7), com descrição de cada tipo.

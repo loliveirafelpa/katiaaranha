@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { calcularDiaNumeroPara } from '../../../lib/ciclosDiarioApi'
-import { atualizarEntrada, buscarEntrada, criarEntrada } from '../../../lib/entradasDiarioApi'
+import { atualizarEntrada, buscarEntrada, criarEntrada, criarEntradas } from '../../../lib/entradasDiarioApi'
 import ChipSeletorLiquido from '../../../components/ChipSeletorLiquido'
 import AtalhosVolume from '../../../components/AtalhosVolume'
 import SeletorSeveridade from '../../../components/SeletorSeveridade'
@@ -10,13 +10,16 @@ import SeletorNivelVolume from '../../../components/SeletorNivelVolume'
 import SeletorEscalaFezes from '../../../components/SeletorEscalaFezes'
 import { colors } from '../../../theme'
 
-const TIPOS_VALIDOS = ['liquido', 'urinario', 'perda', 'intestinal']
+// "banheiro" nao e um tipo do banco: e o formulario unico de xixi + coco, que salva
+// uma entrada 'urinario' e/ou uma 'intestinal' no mesmo horario.
+const TIPOS_VALIDOS = ['liquido', 'urinario', 'perda', 'intestinal', 'banheiro']
 
 const TITULO_POR_TIPO = {
   liquido: 'Novo registro de líquido',
   urinario: 'Registrar xixi',
   perda: 'Registrar perda de urina',
   intestinal: 'Registrar cocô',
+  banheiro: 'Fui ao banheiro',
 }
 
 function agoraParaInputLocal() {
@@ -68,6 +71,10 @@ export default function NovaEntradaPage() {
 
   // Campo especifico de "intestinal"
   const [fezesEscala, setFezesEscala] = useState(null)
+
+  // So no "banheiro": o que o paciente marcou que fez
+  const [fezXixi, setFezXixi] = useState(true)
+  const [fezCoco, setFezCoco] = useState(false)
 
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
@@ -127,7 +134,11 @@ export default function NovaEntradaPage() {
       setErro('Informe a quantidade de líquido ingerido.')
       return
     }
-    if (tipo === 'intestinal' && !fezesEscala) {
+    if (tipo === 'banheiro' && !fezXixi && !fezCoco) {
+      setErro('Marque se fez xixi, cocô ou os dois.')
+      return
+    }
+    if ((tipo === 'intestinal' || (tipo === 'banheiro' && fezCoco)) && !fezesEscala) {
       setErro('Selecione a classificação das fezes.')
       return
     }
@@ -161,6 +172,10 @@ export default function NovaEntradaPage() {
       if (modoEdicao) {
         await atualizarEntrada(id, dadosEntrada)
         navigate(-1)
+      } else if (tipo === 'banheiro') {
+        const tipos = [fezXixi && 'urinario', fezCoco && 'intestinal'].filter(Boolean)
+        await criarEntradas(tipos.map((t) => ({ cicloId: ciclo.id, pacienteId: perfil.id, ...dadosEntrada, tipoEvento: t })))
+        navigate('/app/diario', { replace: true })
       } else {
         await criarEntrada({ cicloId: ciclo.id, pacienteId: perfil.id, ...dadosEntrada })
         navigate('/app/diario', { replace: true })
@@ -175,6 +190,54 @@ export default function NovaEntradaPage() {
       setSalvando(false)
     }
   }
+
+  // Campos de xixi e de coco - usados tanto nos registros individuais (edicao de
+  // entradas antigas) quanto juntos no formulario "Fui ao banheiro".
+  const camposXixi = (
+    <>
+      <div>
+        <label className="block text-sm font-medium mb-2">Volume urinado (ml) <span className="font-normal" style={{ color: colors.textSecondary }}>(opcional)</span></label>
+        <input
+          type="number"
+          min="0"
+          placeholder="ml"
+          value={volumeUrinadoMl}
+          onChange={(e) => setVolumeUrinadoMl(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border text-sm"
+          style={{ borderColor: colors.border }}
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Nível do volume</label>
+        <SeletorNivelVolume value={volumeUrinadoNivel} onChange={setVolumeUrinadoNivel} />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Necessidade urgente de urinar</label>
+        <div className="flex flex-wrap gap-2 items-center">
+          <button
+            type="button"
+            onClick={() => setUrgencia('')}
+            className="px-3 py-1.5 rounded-full text-sm border font-medium"
+            style={{
+              borderColor: urgencia === '' ? colors.secondary : colors.border,
+              background: urgencia === '' ? colors.secondary : colors.surface,
+              color: urgencia === '' ? '#fff' : colors.text,
+            }}
+          >
+            Nenhuma
+          </button>
+          <SeletorSeveridade value={urgencia} onChange={setUrgencia} />
+        </div>
+      </div>
+    </>
+  )
+
+  const camposCoco = (
+    <div>
+      <label className="block text-sm font-medium mb-2">Como estava?</label>
+      <SeletorEscalaFezes value={fezesEscala} onChange={setFezesEscala} />
+    </div>
+  )
 
   return (
     <form
@@ -214,44 +277,7 @@ export default function NovaEntradaPage() {
         </div>
       )}
 
-      {tipo === 'urinario' && (
-        <>
-          <div>
-            <label className="block text-sm font-medium mb-2">Volume urinado (ml) <span className="font-normal" style={{ color: colors.textSecondary }}>(opcional)</span></label>
-            <input
-              type="number"
-              min="0"
-              placeholder="ml"
-              value={volumeUrinadoMl}
-              onChange={(e) => setVolumeUrinadoMl(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm"
-              style={{ borderColor: colors.border }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Nível do volume</label>
-            <SeletorNivelVolume value={volumeUrinadoNivel} onChange={setVolumeUrinadoNivel} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Necessidade urgente de urinar</label>
-            <div className="flex flex-wrap gap-2 items-center">
-              <button
-                type="button"
-                onClick={() => setUrgencia('')}
-                className="px-3 py-1.5 rounded-full text-sm border font-medium"
-                style={{
-                  borderColor: urgencia === '' ? colors.secondary : colors.border,
-                  background: urgencia === '' ? colors.secondary : colors.surface,
-                  color: urgencia === '' ? '#fff' : colors.text,
-                }}
-              >
-                Nenhuma
-              </button>
-              <SeletorSeveridade value={urgencia} onChange={setUrgencia} />
-            </div>
-          </div>
-        </>
-      )}
+      {tipo === 'urinario' && camposXixi}
 
       {tipo === 'perda' && (
         <>
@@ -271,11 +297,17 @@ export default function NovaEntradaPage() {
         </>
       )}
 
-      {tipo === 'intestinal' && (
-        <div>
-          <label className="block text-sm font-medium mb-2">Como estava?</label>
-          <SeletorEscalaFezes value={fezesEscala} onChange={setFezesEscala} />
-        </div>
+      {tipo === 'intestinal' && camposCoco}
+
+      {tipo === 'banheiro' && (
+        <>
+          <SecaoBanheiro titulo="Fiz xixi" marcado={fezXixi} onChange={setFezXixi}>
+            {camposXixi}
+          </SecaoBanheiro>
+          <SecaoBanheiro titulo="Fiz cocô" marcado={fezCoco} onChange={setFezCoco}>
+            {camposCoco}
+          </SecaoBanheiro>
+        </>
       )}
 
       {erro && <p className="text-sm" style={{ color: colors.danger }}>{erro}</p>}
@@ -301,5 +333,28 @@ export default function NovaEntradaPage() {
         )}
       </div>
     </form>
+  )
+}
+
+// Bloco do formulario "Fui ao banheiro": caixa de marcar no topo e, quando marcada,
+// os mesmos campos do registro individual de xixi ou de coco logo abaixo.
+function SecaoBanheiro({ titulo, marcado, onChange, children }) {
+  return (
+    <div
+      className="rounded-xl p-4 space-y-4"
+      style={{ border: `1px solid ${marcado ? colors.primary : colors.border}` }}
+    >
+      <label className="flex items-center gap-2 font-medium cursor-pointer" style={{ color: colors.secondary }}>
+        <input
+          type="checkbox"
+          checked={marcado}
+          onChange={(e) => onChange(e.target.checked)}
+          className="w-5 h-5"
+          style={{ accentColor: colors.primary }}
+        />
+        {titulo}
+      </label>
+      {marcado && children}
+    </div>
   )
 }

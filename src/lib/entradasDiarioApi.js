@@ -109,8 +109,8 @@ function camposPorTipo(tipoEvento, campos) {
 // Cada entrada representa UM evento pontual de um unico tipo - liquido ingerido,
 // ida ao banheiro (volume urinado) ou perda involuntaria - nunca uma combinacao,
 // porque na vida real esses eventos nao acontecem todos no mesmo instante.
-export async function criarEntrada({ cicloId, pacienteId, registradoEm, diaNumero, tipoEvento, ...campos }) {
-  const payload = {
+function payloadNovaEntrada({ cicloId, pacienteId, registradoEm, diaNumero, tipoEvento, ...campos }) {
+  return {
     ciclo_id: cicloId,
     paciente_id: pacienteId,
     registrado_em: registradoEm,
@@ -118,11 +118,22 @@ export async function criarEntrada({ cicloId, pacienteId, registradoEm, diaNumer
     tipo_evento: tipoEvento,
     ...camposPorTipo(tipoEvento, campos),
   }
+}
 
-  const { data, error } = await supabase.from('entradas_diario').insert(payload).select('*').single()
+export async function criarEntrada(entrada) {
+  const { data, error } = await supabase.from('entradas_diario').insert(payloadNovaEntrada(entrada)).select('*').single()
 
   if (error) throw error
   return paraCamel(data)
+}
+
+// Usado no "Fui ao banheiro": xixi e coco no mesmo horario continuam sendo duas
+// entradas separadas, mas gravadas num unico insert - ou salvam as duas, ou nenhuma.
+export async function criarEntradas(entradas) {
+  const { data, error } = await supabase.from('entradas_diario').insert(entradas.map(payloadNovaEntrada)).select('*')
+
+  if (error) throw error
+  return data.map(paraCamel)
 }
 
 export async function atualizarEntrada(id, { registradoEm, diaNumero, tipoEvento, ...campos }) {
