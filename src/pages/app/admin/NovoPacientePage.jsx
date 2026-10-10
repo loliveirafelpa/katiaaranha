@@ -11,6 +11,8 @@ export default function NovoPacientePage() {
   const [unidade, setUnidade] = useState('')
   const [servico, setServico] = useState('')
   const [servicoOutro, setServicoOutro] = useState('')
+  const [idade, setIdade] = useState('')
+  const [pesoKg, setPesoKg] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
   const [resultado, setResultado] = useState(null)
@@ -27,6 +29,8 @@ export default function NovoPacientePage() {
         unidade: unidade || null,
         servico: servico || null,
         servicoOutro: servico === 'outro' ? servicoOutro : null,
+        idade: idade === '' ? null : Number(idade),
+        pesoKg: pesoKg === '' ? null : Number(pesoKg),
       })
       setResultado(res)
     } catch (err) {
@@ -97,6 +101,39 @@ export default function NovoPacientePage() {
           style={{ borderColor: colors.border }}
         />
       </div>
+
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <label className="block text-sm font-medium mb-1">Idade</label>
+          <input
+            type="number"
+            min="1"
+            max="129"
+            required
+            value={idade}
+            onChange={(e) => setIdade(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border text-sm"
+            style={{ borderColor: colors.border }}
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium mb-1">Peso (kg)</label>
+          <input
+            type="number"
+            min="1"
+            max="399"
+            step="0.1"
+            required
+            value={pesoKg}
+            onChange={(e) => setPesoKg(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border text-sm"
+            style={{ borderColor: colors.border }}
+          />
+        </div>
+      </div>
+      <p className="text-xs -mt-2" style={{ color: colors.textSecondary }}>
+        Usados só para calcular a meta diária de líquido recomendada, mostrada na ficha do paciente.
+      </p>
 
       <div>
         <label className="block text-sm font-medium mb-1">Unidade</label>

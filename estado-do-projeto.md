@@ -15,14 +15,14 @@ Dois tipos de acesso:
 ## Estado atual — o que já funciona
 
 **Paciente:**
-- Registra 3 tipos de evento a qualquer hora do dia: líquido ingerido, foi ao banheiro (volume em ml é opcional — dá pra registrar só "baixo/médio/alto"), e perda de urina (com intensidade e o que estava fazendo na hora, inclusive texto livre).
+- Registra 4 tipos de evento a qualquer hora do dia: líquido ingerido, fez xixi (volume em ml é opcional — dá pra registrar só "baixo/médio/alto"), fez cocô (classificação pela Escala de Bristol, 1 a 7), e perda de urina (com intensidade e o que estava fazendo na hora, inclusive texto livre).
 - Pode ter mais de um ciclo de acompanhamento ao longo do tempo (por exemplo, um ciclo agora e outro daqui a um mês) e troca entre eles por um menu no topo da tela.
 - Preenche um formulário rápido de observações do dia (absorvente, menstruação, medicamentos, outros sintomas).
 - Vê os dias anteriores do diário (não só o dia atual) e pode editar ou excluir qualquer registro já feito, não só o de hoje.
 - Tela "Meus dados": revoga o consentimento de uso de dado de saúde ou pede exclusão da própria conta.
 
 **Admin (Dra. Kátia):**
-- Cadastra paciente (nome, contato, unidade, serviço/tratamento) e recebe uma senha temporária pra repassar.
+- Cadastra paciente (nome, contato, unidade, serviço/tratamento, idade e peso) e recebe uma senha temporária pra repassar. A partir da idade e peso, o sistema calcula sozinho a meta diária de líquido recomendada pra aquele paciente (regra por faixa etária: até 17 anos = 40ml/kg, 18-55 = 35ml/kg, 56-65 = 30ml/kg, 66+ = 25-30ml/kg) e mostra isso na ficha dele, junto com os outros destaques.
 - Cria ciclos de acompanhamento pra cada paciente — sem uma quantidade fixa de dias, é livre. Não dá mais pra criar dois ciclos com datas que se cruzam pro mesmo paciente (o sistema bloqueia e explica o motivo).
 - Vê o diário do paciente separado por dia, com opção de ordenar cada dia por horário ou por tipo de evento, e uma linha do tempo visual ao final de cada dia.
 - Aba de Gráficos com: três números em destaque (total de líquido ingerido, total de idas ao banheiro, episódios de perda), balanço hídrico por dia, gráfico de urgência por dia, balanço de perdas por dia, perdas por atividade, e uma tabela colorida que cruza intensidade da perda com a atividade (pra responder "perda leve está mais ligada a quê?").
@@ -42,6 +42,9 @@ Dois tipos de acesso:
 
 ## Trabalho recente (mais a mais recente)
 
+- **Idade, peso e meta de líquido recomendada** no cadastro de paciente (admin), pedido depois da demonstração. A ficha do paciente agora mostra um 4º destaque nos Gráficos com a meta calculada por faixa etária.
+- **Ilustrações na Escala de Bristol** ao lado de cada tipo, no registro de "Fiz cocô" — pedido depois de testar a funcionalidade nova.
+- **Novo tipo de registro: "Fiz cocô"**, pedido pela Dra. Kátia depois da demonstração. Botão "Fui ao banheiro" virou "Fiz xixi" e "Fiz cocô" pra diferenciar. Classificação usa a Escala de Bristol (1 a 7), com descrição de cada tipo.
 - **Deploy publicado no Vercel**, conectado ao GitHub (repositório `loliveirafelpa/katiaaranha`): https://katiaaranha-ghx5.vercel.app — testado em produção com login de admin e de paciente reais em 17/09/2026.
 - Paciente agora vê dias anteriores do diário (não só o de hoje) e pode editar ou excluir qualquer registro já feito.
 - Regra impedindo dois ciclos com datas conflitantes pro mesmo paciente.

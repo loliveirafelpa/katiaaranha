@@ -1,6 +1,7 @@
-import { GlassWater, Toilet, Droplet } from 'lucide-react'
+import { GlassWater, Toilet, Droplet, CircleDot } from 'lucide-react'
 import { colors } from '../theme'
 import { labelAtividadePerda } from '../data/atividadesPerda'
+import { labelEscalaFezes } from '../data/escalaFezes'
 
 const LABEL_LIQUIDO = {
   agua: 'Água', cafe: 'Café', cha: 'Chá', suco: 'Suco',
@@ -11,24 +12,28 @@ const LABEL_NIVEL = { baixo: 'baixo', medio: 'médio', alto: 'alto' }
 
 const LABEL_TIPO = {
   liquido: 'Líquido ingerido',
-  urinario: 'Foi ao banheiro',
+  urinario: 'Fez xixi',
   perda: 'Perda de urina',
+  intestinal: 'Fez cocô',
 }
 
-const ORDEM_TIPO = { liquido: 0, urinario: 1, perda: 2 }
+const ORDEM_TIPO = { liquido: 0, urinario: 1, intestinal: 2, perda: 3 }
 
 const COR_TIPO = {
   liquido: colors.secondary,
   urinario: colors.primary,
   perda: colors.danger,
+  intestinal: colors.accent,
 }
 
-// Copo cheio pra liquido ingerido, vaso sanitario pra ida ao banheiro, gota pra perda -
-// usados na linha do tempo no lugar do rotulo escrito, pra ficar rapido de escanear.
+// Copo cheio pra liquido ingerido, vaso sanitario pra xixi, gota pra perda e um marcador
+// neutro pra evento intestinal - usados na linha do tempo no lugar do rotulo escrito,
+// pra ficar rapido de escanear.
 const ICONE_TIPO = {
   liquido: GlassWater,
   urinario: Toilet,
   perda: Droplet,
+  intestinal: CircleDot,
 }
 
 function formatarHora(iso) {
@@ -50,6 +55,9 @@ function descreverEntrada(e) {
   if (e.tipoEvento === 'perda') {
     const atividade = labelAtividadePerda(e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe)
     return `Perda ${e.perda}${atividade ? ` · ${atividade}` : ''}`
+  }
+  if (e.tipoEvento === 'intestinal') {
+    return labelEscalaFezes(e.fezesEscala) || '—'
   }
   return '—'
 }

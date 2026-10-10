@@ -51,27 +51,27 @@ supabase/
 
 Tabelas principais (todas com RLS ativo):
 
-- **`profiles`** — espelha `auth.users`; guarda `role` (`admin`/`paciente`), nome, contato, unidade, serviço contratado.
+- **`profiles`** — espelha `auth.users`; guarda `role` (`admin`/`paciente`), nome, contato, unidade, serviço contratado, idade e peso (`peso_kg`) — esses dois últimos usados só para calcular a meta diária de líquido recomendada (`src/lib/metaLiquido.js`).
 - **`consentimentos`** — registro append-only do aceite (ou revogação) do consentimento específico de dado de saúde, com data/hora.
 - **`ciclos_diario`** — um paciente pode ter vários ciclos ao longo do tempo. Tem só `data_inicio` (sem data de término — o ciclo é livre, o paciente registra quantos dias quiser). Um gatilho no banco (`impedir_ciclo_conflitante`) impede criar um novo ciclo cuja data de início não seja estritamente posterior à do ciclo mais recente do mesmo paciente.
-- **`entradas_diario`** — um registro por evento pontual, nunca uma combinação. `tipo_evento` é `liquido`, `urinario` ou `perda`, e um `check` garante que só os campos daquele tipo estejam preenchidos. Volume urinado (ml) é opcional — o paciente pode registrar só o nível qualitativo (baixo/médio/alto).
+- **`entradas_diario`** — um registro por evento pontual, nunca uma combinação. `tipo_evento` é `liquido`, `urinario`, `perda` ou `intestinal`, e um `check` garante que só os campos daquele tipo estejam preenchidos. Volume urinado (ml) é opcional — o paciente pode registrar só o nível qualitativo (baixo/médio/alto). Evento `intestinal` guarda `fezes_escala` (1 a 7, Escala de Bristol).
 - **`observacoes_diarias`** — uma por dia do ciclo (absorvente, menstruação, medicamentos, outros sintomas).
 - **`notas_clinicas`** — anotações internas da profissional; o paciente nunca tem acesso (sem policy de select para `paciente`).
 
-Migrations, em ordem: schema inicial → correções de segurança (advisors do Supabase) → separação dos 3 tipos de evento → serviço do paciente no cadastro → nível qualitativo de volume urinado → atividades de perda por gatilho → ciclo sem duração fixa → volume urinado opcional → impedir ciclos com datas conflitantes.
+Migrations, em ordem: schema inicial → correções de segurança (advisors do Supabase) → separação dos 3 tipos de evento → serviço do paciente no cadastro → nível qualitativo de volume urinado → atividades de perda por gatilho → ciclo sem duração fixa → volume urinado opcional → impedir ciclos com datas conflitantes → múltiplas observações por dia → registro intestinal (Escala de Bristol) → idade e peso do paciente.
 
 ## Edge Functions
 
-- **`criar-paciente`** — só admin pode chamar; cria o usuário no Supabase Auth com senha temporária e o `profile` correspondente.
+- **`criar-paciente`** — só admin pode chamar; cria o usuário no Supabase Auth com senha temporária e o `profile` correspondente (nome, contato, unidade, serviço, idade, peso).
 - **`excluir-paciente`** — só admin pode chamar; usada pelo fluxo de exclusão de conta.
 
 Ambas rodam com a service role key (nunca exposta ao frontend) e conferem o token de quem chamou antes de agir.
 
 ## Regras de negócio já implementadas
 
-- Paciente registra 3 tipos de evento a qualquer hora: líquido ingerido, foi ao banheiro (volume opcional + nível qualitativo + urgência), perda de urina (intensidade + atividade associada, incluindo texto livre para "outro").
+- Paciente registra 4 tipos de evento a qualquer hora: líquido ingerido, fez xixi (volume opcional + nível qualitativo + urgência), fez cocô (classificação pela Escala de Bristol, 1 a 7), perda de urina (intensidade + atividade associada, incluindo texto livre para "outro").
 - Paciente pode ter mais de um ciclo ao longo do tempo; um seletor no cabeçalho deixa trocar entre eles, e todas as telas do paciente (diário do dia, nova entrada, histórico, observações) respeitam o ciclo selecionado.
-- Admin cria pacientes (com serviço/tratamento e unidade), gerencia ciclos, adiciona notas clínicas privadas, e vê o diário do paciente em duas visões: tabela por dia (ordenável por horário ou por tipo) com uma linha do tempo horizontal ao final de cada dia, e uma aba de Gráficos com: 3 destaques (líquido ingerido, registros de urina, episódios de perda), balanço hídrico por dia, urgência por dia (barra de severidade), balanço de perdas por dia, perdas por atividade, e uma matriz de calor cruzando intensidade da perda com a atividade associada.
+- Admin cria pacientes (com serviço/tratamento, unidade, idade e peso), gerencia ciclos, adiciona notas clínicas privadas, e vê o diário do paciente em duas visões: tabela por dia (ordenável por horário ou por tipo) com uma linha do tempo horizontal ao final de cada dia, e uma aba de Gráficos com: destaques (líquido ingerido, registros de urina, episódios de perda, e a meta diária de líquido recomendada calculada a partir da idade/peso), balanço hídrico por dia, urgência por dia (barra de severidade), balanço de perdas por dia, perdas por atividade, e uma matriz de calor cruzando intensidade da perda com a atividade associada.
 - Consentimento específico de dado de saúde (checkbox separado dos termos gerais), guardado com data/hora; paciente pode revogar a qualquer momento pela tela "Meus dados", que também permite solicitar exclusão da conta.
 - Identidade visual própria: paleta 100% em tons de laranja (referência: cpafisio.com.br), fontes Poppins/Cormorant Garamond/Inter, logo de lótus com mandala no centro, marca d'água decorativa na tela inicial.
 

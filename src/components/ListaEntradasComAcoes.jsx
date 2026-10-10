@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { excluirEntrada } from '../lib/entradasDiarioApi'
 import ModalConfirmacaoExclusao from './ModalConfirmacaoExclusao'
 import { labelAtividadePerda } from '../data/atividadesPerda'
+import { labelEscalaFezes } from '../data/escalaFezes'
 import { colors } from '../theme'
 
 const LABEL_LIQUIDO = {
@@ -27,6 +28,9 @@ function descreverEntrada(e) {
   if (e.tipoEvento === 'perda') {
     const atividade = labelAtividadePerda(e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe)
     return `Perda ${e.perda}${atividade ? ` · ${atividade}` : ''}`
+  }
+  if (e.tipoEvento === 'intestinal') {
+    return `Cocô · ${labelEscalaFezes(e.fezesEscala)}`
   }
   return ''
 }

@@ -7,14 +7,16 @@ import AtalhosVolume from '../../../components/AtalhosVolume'
 import SeletorSeveridade from '../../../components/SeletorSeveridade'
 import SeletorAtividade from '../../../components/SeletorAtividade'
 import SeletorNivelVolume from '../../../components/SeletorNivelVolume'
+import SeletorEscalaFezes from '../../../components/SeletorEscalaFezes'
 import { colors } from '../../../theme'
 
-const TIPOS_VALIDOS = ['liquido', 'urinario', 'perda']
+const TIPOS_VALIDOS = ['liquido', 'urinario', 'perda', 'intestinal']
 
 const TITULO_POR_TIPO = {
   liquido: 'Novo registro de líquido',
-  urinario: 'Registrar ida ao banheiro',
+  urinario: 'Registrar xixi',
   perda: 'Registrar perda de urina',
+  intestinal: 'Registrar cocô',
 }
 
 function agoraParaInputLocal() {
@@ -64,6 +66,9 @@ export default function NovaEntradaPage() {
   const [perdaCategoria, setPerdaCategoria] = useState('')
   const [perdaDetalhe, setPerdaDetalhe] = useState('')
 
+  // Campo especifico de "intestinal"
+  const [fezesEscala, setFezesEscala] = useState(null)
+
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
 
@@ -91,6 +96,8 @@ export default function NovaEntradaPage() {
           setPerda(entrada.perda)
           setPerdaCategoria(entrada.perdaAtividadeCategoria || '')
           setPerdaDetalhe(entrada.perdaAtividadeDetalhe || '')
+        } else if (entrada.tipoEvento === 'intestinal') {
+          setFezesEscala(entrada.fezesEscala)
         }
         setCarregandoEntrada(false)
       })
@@ -120,6 +127,10 @@ export default function NovaEntradaPage() {
       setErro('Informe a quantidade de líquido ingerido.')
       return
     }
+    if (tipo === 'intestinal' && !fezesEscala) {
+      setErro('Selecione a classificação das fezes.')
+      return
+    }
 
     const registradoEm = new Date(horario).toISOString()
     const diaNumero = calcularDiaNumeroPara(ciclo, registradoEm)
@@ -142,6 +153,7 @@ export default function NovaEntradaPage() {
       perda,
       perdaAtividadeCategoria: perdaCategoria,
       perdaAtividadeDetalhe: perdaDetalhe,
+      fezesEscala,
     }
 
     setSalvando(true)
@@ -257,6 +269,13 @@ export default function NovaEntradaPage() {
             />
           </div>
         </>
+      )}
+
+      {tipo === 'intestinal' && (
+        <div>
+          <label className="block text-sm font-medium mb-2">Como estava?</label>
+          <SeletorEscalaFezes value={fezesEscala} onChange={setFezesEscala} />
+        </div>
       )}
 
       {erro && <p className="text-sm" style={{ color: colors.danger }}>{erro}</p>}

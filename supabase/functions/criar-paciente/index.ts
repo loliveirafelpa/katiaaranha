@@ -63,6 +63,8 @@ Deno.serve(async (req) => {
   const unidade = body?.unidade || null
   const servico = body?.servico || null
   const servicoOutro = body?.servicoOutro?.trim() || null
+  const idade = body?.idade != null ? Number(body.idade) : null
+  const pesoKg = body?.pesoKg != null ? Number(body.pesoKg) : null
 
   if (!nomeCompleto || !email) {
     return json({ error: 'nomeCompleto e email sao obrigatorios' }, 400)
@@ -86,6 +88,8 @@ Deno.serve(async (req) => {
     unidade,
     servico,
     servico_outro: servico === 'outro' ? servicoOutro : null,
+    idade,
+    peso_kg: pesoKg,
   })
 
   if (profileError) {

@@ -72,7 +72,14 @@ export default function DiarioAtualPage() {
           className="px-4 py-2 rounded-xl font-medium text-white text-sm"
           style={{ background: colors.primary }}
         >
-          + Fui ao banheiro
+          + Fiz xixi
+        </Link>
+        <Link
+          to="/app/diario/nova-entrada/intestinal"
+          className="px-4 py-2 rounded-xl font-medium text-white text-sm"
+          style={{ background: colors.accent }}
+        >
+          + Fiz cocô
         </Link>
         <Link
           to="/app/diario/nova-entrada/perda"

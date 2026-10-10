@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient'
 
-const CAMPOS = 'id, role, nome_completo, contato, unidade, servico, servico_outro, anonimizado_em, criado_em'
+const CAMPOS = 'id, role, nome_completo, contato, unidade, servico, servico_outro, idade, peso_kg, anonimizado_em, criado_em'
 
 function paraCamel(row) {
   if (!row) return null
@@ -12,6 +12,8 @@ function paraCamel(row) {
     unidade: row.unidade,
     servico: row.servico,
     servicoOutro: row.servico_outro,
+    idade: row.idade,
+    pesoKg: row.peso_kg,
     anonimizadoEm: row.anonimizado_em,
     criadoEm: row.criado_em,
   }

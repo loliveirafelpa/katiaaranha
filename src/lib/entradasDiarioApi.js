@@ -17,6 +17,7 @@ function paraCamel(row) {
     perda: row.perda,
     perdaAtividadeCategoria: row.perda_atividade_categoria,
     perdaAtividadeDetalhe: row.perda_atividade_detalhe,
+    fezesEscala: row.fezes_escala,
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
   }
@@ -69,6 +70,7 @@ function camposPorTipo(tipoEvento, campos) {
     perda: null,
     perda_atividade_categoria: null,
     perda_atividade_detalhe: null,
+    fezes_escala: null,
   }
 
   if (tipoEvento === 'liquido') {
@@ -93,6 +95,12 @@ function camposPorTipo(tipoEvento, campos) {
       perda: campos.perda,
       perda_atividade_categoria: campos.perdaAtividadeCategoria || null,
       perda_atividade_detalhe: campos.perdaAtividadeDetalhe || null,
+    }
+  }
+  if (tipoEvento === 'intestinal') {
+    return {
+      ...vazio,
+      fezes_escala: campos.fezesEscala,
     }
   }
   return vazio

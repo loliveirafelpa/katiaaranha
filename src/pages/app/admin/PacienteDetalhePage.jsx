@@ -19,6 +19,7 @@ import StatusCicloBadge from '../../../components/StatusCicloBadge'
 import ModalConfirmacaoExclusao from '../../../components/ModalConfirmacaoExclusao'
 import { labelServico } from '../../../data/servicos'
 import { ATIVIDADES_PERDA } from '../../../data/atividadesPerda'
+import { calcularMetaLiquidoMl, formatarMetaLiquido } from '../../../lib/metaLiquido'
 import { colors } from '../../../theme'
 
 const LABEL_UNIDADE = { campinas: 'Campinas', jundiai: 'Jundiaí' }
@@ -256,6 +257,7 @@ export default function PacienteDetalhePage() {
   const totalLiquidoIngeridoMl = entradas.reduce((soma, e) => soma + (e.tipoEvento === 'liquido' ? (e.liquidoMl || 0) : 0), 0)
   const totalRegistrosUrina = entradas.filter((e) => e.tipoEvento === 'urinario').length
   const totalEpisodiosPerda = entradas.filter((e) => e.tipoEvento === 'perda').length
+  const metaLiquidoDiaria = formatarMetaLiquido(calcularMetaLiquidoMl(paciente.idade, paciente.pesoKg))
   const maxUrgenciaPorDia = Math.max(
     1,
     ...resumoPorDia.map((r) => r.contagemUrgencia.pequena + r.contagemUrgencia.moderada + r.contagemUrgencia.intensa)
@@ -276,6 +278,8 @@ export default function PacienteDetalhePage() {
             {paciente.unidade ? LABEL_UNIDADE[paciente.unidade] : 'Sem unidade'}
             {labelServico(paciente) ? ` · ${labelServico(paciente)}` : ''}
             {paciente.contato ? ` · ${paciente.contato}` : ''}
+            {paciente.idade ? ` · ${paciente.idade} anos` : ''}
+            {paciente.pesoKg ? ` · ${paciente.pesoKg} kg` : ''}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -356,10 +360,13 @@ export default function PacienteDetalhePage() {
               <p className="text-sm" style={{ color: colors.textSecondary }}>
                 Os números abaixo somam o ciclo inteiro selecionado, do início até hoje — não são o total de um dia isolado.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className={`grid grid-cols-1 gap-3 ${metaLiquidoDiaria ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
                 <CardDestaque valor={`${totalLiquidoIngeridoMl} ml`} label="Total de líquido ingerido" />
                 <CardDestaque valor={totalRegistrosUrina} label="Total de registros de urina" />
                 <CardDestaque valor={totalEpisodiosPerda} label="Episódios de perda" />
+                {metaLiquidoDiaria && (
+                  <CardDestaque valor={metaLiquidoDiaria} label="Meta diária de líquido recomendada" />
+                )}
               </div>
               <p className="text-xs -mt-3" style={{ color: colors.textSecondary }}>
                 Noctúria: {nocturia.total} {nocturia.total === 1 ? 'ida noturna registrada' : 'idas noturnas registradas'}
