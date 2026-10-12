@@ -4,8 +4,26 @@ import { supabase } from './lib/supabaseClient'
 import { getPerfilAtual, logout } from './lib/authApi'
 import { obterConsentimentoAtual } from './lib/consentimentosApi'
 import { listarCiclosPorPaciente } from './lib/ciclosDiarioApi'
+import { BookOpen, Dumbbell, UserRound, Users, LogOut } from 'lucide-react'
 import LogoCpa from './components/brand/LogoCpa'
 import { colors } from './theme'
+
+// Menu do topo (paciente e admin): icone sempre, texto so a partir do tablet (no celular
+// o topo fica enxuto). A pagina atual ganha fundo laranja claro.
+function LinkMenu({ to, ativo, Icone, children }) {
+  return (
+    <Link
+      to={to}
+      aria-current={ativo ? 'page' : undefined}
+      title={children}
+      className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium focus-visible:outline-2"
+      style={{ background: ativo ? colors.background : 'transparent', color: ativo ? colors.secondary : colors.textSecondary, outlineColor: colors.primary }}
+    >
+      <Icone size={18} aria-hidden="true" />
+      <span className="hidden md:inline">{children}</span>
+    </Link>
+  )
+}
 
 export default function AppShell() {
   const [carregando, setCarregando] = useState(true)
@@ -13,6 +31,7 @@ export default function AppShell() {
   const [consentimentoOk, setConsentimentoOk] = useState(true)
   const [ciclosPaciente, setCiclosPaciente] = useState([])
   const [cicloSelecionadoId, setCicloSelecionadoId] = useState(null)
+  const [versaoCiclos, setVersaoCiclos] = useState(0)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -54,8 +73,9 @@ export default function AppShell() {
   }, [location.pathname])
 
   // Carrega a lista de ciclos do paciente uma unica vez por login (nao a cada troca de
-  // rota) para alimentar o seletor de ciclo no cabecalho. Continua mesmo apos criar novos
-  // ciclos - se o admin criar mais um, ele so aparece aqui no proximo login/refresh.
+  // rota) para alimentar o seletor de ciclo no cabecalho. Se o admin criar mais um, ele so
+  // aparece aqui no proximo login/refresh. recarregarCiclos (via Outlet) forca a releitura,
+  // usado quando o paciente escolhe o dia de inicio de um ciclo novo.
   useEffect(() => {
     if (perfil?.role !== 'paciente') {
       setCiclosPaciente([])
@@ -69,7 +89,7 @@ export default function AppShell() {
       setCicloSelecionadoId((atual) => atual && lista.some((c) => c.id === atual) ? atual : (lista[0]?.id ?? null))
     })
     return () => { ativo = false }
-  }, [perfil?.id, perfil?.role])
+  }, [perfil?.id, perfil?.role, versaoCiclos])
 
   if (carregando) {
     return (
@@ -112,28 +132,43 @@ export default function AppShell() {
               className="px-2 py-1.5 rounded-lg border text-sm"
               style={{ borderColor: colors.border }}
             >
-              {ciclosPaciente.map((c) => (
+              {/* do mais recente pro mais antigo: o numero conta de tras pra frente */}
+              {ciclosPaciente.map((c, i) => (
                 <option key={c.id} value={c.id}>
-                  Ciclo de {new Date(`${c.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')}
+                  Ciclo {ciclosPaciente.length - i}{c.dataInicio ? '' : ' (novo)'}
                 </option>
               ))}
             </select>
           )}
-          <span style={{ color: colors.textSecondary }}>
-            {perfil.nomeCompleto} · {perfil.role === 'admin' ? 'Admin' : 'Paciente'}
-          </span>
           {perfil.role === 'paciente' && (
-            <Link to="/app/meus-dados" className="underline" style={{ color: colors.textSecondary }}>
-              Meus dados
-            </Link>
+            <nav aria-label="Menu do paciente" className="flex items-center gap-1">
+              <LinkMenu to="/app/diario" ativo={location.pathname.startsWith('/app/diario')} Icone={BookOpen}>Diário</LinkMenu>
+              <LinkMenu to="/app/exercicios" ativo={location.pathname.startsWith('/app/exercicios')} Icone={Dumbbell}>Exercícios/Orientações</LinkMenu>
+              <LinkMenu to="/app/meus-dados" ativo={location.pathname.startsWith('/app/meus-dados')} Icone={UserRound}>Meus dados</LinkMenu>
+            </nav>
           )}
-          <button onClick={handleLogout} className="underline" style={{ color: colors.primary }}>
-            Sair
+          {perfil.role === 'admin' && (
+            <nav aria-label="Menu da clínica" className="flex items-center gap-1">
+              <LinkMenu to="/app/admin/pacientes" ativo={location.pathname.startsWith('/app/admin/pacientes')} Icone={Users}>Pacientes</LinkMenu>
+              <LinkMenu to="/app/admin/exercicios" ativo={location.pathname.startsWith('/app/admin/exercicios')} Icone={Dumbbell}>Exercícios</LinkMenu>
+            </nav>
+          )}
+          {perfil.role === 'admin' && (
+            <span className="hidden lg:inline text-xs" style={{ color: colors.textSecondary }}>{perfil.nomeCompleto}</span>
+          )}
+          <button
+            onClick={handleLogout}
+            aria-label="Sair"
+            title="Sair"
+            className="w-9 h-9 rounded-full flex items-center justify-center focus-visible:outline-2"
+            style={{ color: colors.primary, outlineColor: colors.primary }}
+          >
+            <LogOut size={18} aria-hidden="true" />
           </button>
         </div>
       </header>
       <main className="p-6 max-w-4xl mx-auto">
-        <Outlet context={{ perfil, cicloSelecionado }} />
+        <Outlet context={{ perfil, cicloSelecionado, ciclosPaciente, recarregarCiclos: () => setVersaoCiclos((v) => v + 1) }} />
       </main>
     </div>
   )

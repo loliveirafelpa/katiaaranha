@@ -18,6 +18,7 @@ Dois tipos de acesso:
 - Registra 4 tipos de evento a qualquer hora do dia (xixi e cocô ficam juntos no botão "Fui ao banheiro", no mesmo quadro): líquido ingerido, fez xixi (volume em ml é opcional — dá pra registrar só "baixo/médio/alto"), fez cocô (classificação pela Escala de Bristol, 1 a 7), e perda de urina (com intensidade e o que estava fazendo na hora, inclusive texto livre).
 - Pode ter mais de um ciclo de acompanhamento ao longo do tempo (por exemplo, um ciclo agora e outro daqui a um mês) e troca entre eles por um menu no topo da tela.
 - Preenche um formulário rápido de observações do dia (absorvente, menstruação, medicamentos, outros sintomas).
+- Vê os exercícios que a Dra. Kátia prescreveu para a semana (tela "Meus exercícios"), com a frequência, séries/repetições, recado da doutora e instruções de como fazer.
 - Vê os dias anteriores do diário (não só o dia atual, escolhendo num seletor) e pode editar ou excluir qualquer registro já feito, não só o de hoje.
 - Tela "Meus dados": revoga o consentimento de uso de dado de saúde ou pede exclusão da própria conta.
 
@@ -27,6 +28,7 @@ Dois tipos de acesso:
 - Vê o diário do paciente separado por dia, com opção de ordenar cada dia por horário ou por tipo de evento, e uma linha do tempo visual ao final de cada dia.
 - Aba de Gráficos com: três números em destaque (total de líquido ingerido, total de idas ao banheiro, episódios de perda), balanço hídrico por dia, gráfico de urgência por dia, balanço de perdas por dia, perdas por atividade, e uma tabela colorida que cruza intensidade da perda com a atividade (pra responder "perda leve está mais ligada a quê?").
 - Escreve e apaga notas clínicas internas por paciente/dia.
+- Prescreve exercícios por semana na aba "Exercícios" da ficha do paciente: escolhe do catálogo (já vem com exercícios de pilates e de assoalho pélvico), ajusta vezes por semana, séries, repetições e um recado. Tem uma página de catálogo pra cadastrar exercícios novos ou desativar os que não usa.
 
 **Identidade visual:** paleta própria só em tons de laranja (baseada no site real da CPA Fisioterapia), com um logo de lótus com mandala no centro, criado pra este sistema.
 
@@ -42,6 +44,14 @@ Dois tipos de acesso:
 
 ## Trabalho recente (mais a mais recente)
 
+- **Rodada de ajustes de 12/10/2026:**
+  - Serviços do cadastro reduzidos a Gestante, Pós parto, Incontinência Urinária, Pós operatório e Pilates; nova tela "Editar cadastro".
+  - Xixi ganhou "Sentiu que esvaziou a bexiga por completo?" e "Pingou xixi ao se levantar do vaso?"; campo renomeado para "Necessidade de urinar".
+  - **Protocolo de urgência** (ligado por paciente): peso da fralda antes/depois e "troquei a fralda agora", com soma de trocas por dia nos gráficos e comparativos.
+  - **Ciclos:** a Dra. Kátia só clica em "Acrescentar novo ciclo"; o paciente escolhe a data de início.
+  - Admin: visualização **Tabela** igual à folha impressa (00h–24h, por dia do calendário); aba **Comparativos** entre ciclos; gráfico separado de idas noturnas; destaque "Dias com registro"; comentários só da Dra. Kátia em cada gráfico; aba "Exercícios/Orientações" com orientações em texto livre; catálogo de exercícios com categoria "Outro" e edição.
+  - Visual novo do paciente (saudação, atalhos, régua do dia, linha do tempo, **meta diária de líquido** com barra de progresso) e do admin no mesmo estilo.
+- **Módulo de Exercícios** (admin prescreve, paciente vê a semana). Os textos dos 12 exercícios iniciais foram escritos como ponto de partida e **precisam ser revisados pela Dra. Kátia**.
 - **"Dias anteriores" virou um seletor fechado** (com a data de cada dia) em vez de um botão por dia.
 - **Xixi e cocô voltaram a ficar juntos no botão "Fui ao banheiro"**: um quadro só, com as duas partes em sequência; continua salvando um registro de cada tipo.
 - **Idade, peso e meta de líquido recomendada** no cadastro de paciente (admin), pedido depois da demonstração. A ficha do paciente agora mostra um 4º destaque nos Gráficos com a meta calculada por faixa etária.

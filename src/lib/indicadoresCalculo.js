@@ -106,14 +106,44 @@ export function calcularCorrelacaoPerdaAtividade(entradas) {
     .sort((a, b) => b.total - a.total)
 }
 
-// Conta idas ao banheiro (volume urinado > 0) cuja hora local cai numa janela noturna
-// configuravel (padrao 23h-6h) - metrica clinica de noturia.
+// Protocolo de urgencia: urina retida na fralda = peso apos a troca - peso da fralda seca.
+// null quando falta um dos pesos (nao da pra afirmar que foi zero).
+export function urinaNaFraldaG(e) {
+  if (e.pesoFraldaInicialG == null || e.pesoFraldaPosG == null) return null
+  return Math.max(0, e.pesoFraldaPosG - e.pesoFraldaInicialG)
+}
+
+// Por dia: soma da urina na fralda e quantidade de trocas. O paciente so marca "troquei a
+// fralda" em cada registro; o total do dia e a contagem dessas marcacoes.
+// Devolve [] quando o ciclo nao tem nenhum dado do protocolo.
+export function calcularFraldaPorDia(entradas) {
+  const porDia = new Map()
+  for (const e of entradas) {
+    if (e.tipoEvento !== 'urinario') continue
+    const urina = urinaNaFraldaG(e)
+    if (urina == null && !e.trocouFralda) continue
+    const atual = porDia.get(e.diaNumero) || { diaNumero: e.diaNumero, urinaFraldaG: 0, comPeso: false, trocas: 0 }
+    if (urina != null) {
+      atual.urinaFraldaG += urina
+      atual.comPeso = true
+    }
+    if (e.trocouFralda) atual.trocas += 1
+    porDia.set(e.diaNumero, atual)
+  }
+  return [...porDia.values()]
+    .map((d) => ({ diaNumero: d.diaNumero, urinaFraldaG: d.comPeso ? d.urinaFraldaG : null, trocas: d.trocas }))
+    .sort((a, b) => a.diaNumero - b.diaNumero)
+}
+
+// Conta idas ao banheiro pra urinar cuja hora local cai numa janela noturna configuravel
+// (padrao 23h-6h) - metrica clinica de noturia. Conta todo registro de xixi, mesmo sem
+// volume informado (o volume e opcional desde a 0008).
 export function calcularNocturia(entradas, { inicioNoite = 23, fimNoite = 6 } = {}) {
   let total = 0
   const porDia = {}
 
   for (const e of entradas) {
-    if (!e.volumeUrinadoMl || e.volumeUrinadoMl <= 0) continue
+    if (e.tipoEvento !== 'urinario') continue
     const hora = new Date(e.registradoEm).getHours()
     const eNoite = inicioNoite > fimNoite
       ? hora >= inicioNoite || hora < fimNoite

@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
   const servicoOutro = body?.servicoOutro?.trim() || null
   const idade = body?.idade != null ? Number(body.idade) : null
   const pesoKg = body?.pesoKg != null ? Number(body.pesoKg) : null
+  const protocoloUrgencia = body?.protocoloUrgencia === true
 
   if (!nomeCompleto || !email) {
     return json({ error: 'nomeCompleto e email sao obrigatorios' }, 400)
@@ -90,6 +91,7 @@ Deno.serve(async (req) => {
     servico_outro: servico === 'outro' ? servicoOutro : null,
     idade,
     peso_kg: pesoKg,
+    protocolo_urgencia: protocoloUrgencia,
   })
 
   if (profileError) {

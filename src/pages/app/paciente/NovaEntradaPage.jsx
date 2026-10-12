@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { calcularDiaNumeroPara } from '../../../lib/ciclosDiarioApi'
-import { atualizarEntrada, buscarEntrada, criarEntrada, criarEntradas } from '../../../lib/entradasDiarioApi'
+import { atualizarEntrada, buscarEntrada, buscarUltimoPesoFraldaInicial, criarEntrada, criarEntradas } from '../../../lib/entradasDiarioApi'
 import ChipSeletorLiquido from '../../../components/ChipSeletorLiquido'
 import AtalhosVolume from '../../../components/AtalhosVolume'
 import SeletorSeveridade from '../../../components/SeletorSeveridade'
 import SeletorAtividade from '../../../components/SeletorAtividade'
 import SeletorNivelVolume from '../../../components/SeletorNivelVolume'
 import SeletorEscalaFezes from '../../../components/SeletorEscalaFezes'
+import SeletorSimNao from '../../../components/SeletorSimNao'
 import { colors } from '../../../theme'
 
 // "banheiro" nao e um tipo do banco: e o formulario unico de xixi + coco, que salva
@@ -63,6 +64,15 @@ export default function NovaEntradaPage() {
   const [volumeUrinadoMl, setVolumeUrinadoMl] = useState('')
   const [volumeUrinadoNivel, setVolumeUrinadoNivel] = useState('')
   const [urgencia, setUrgencia] = useState('')
+  const [esvaziamentoCompleto, setEsvaziamentoCompleto] = useState(null)
+  const [gotejamentoPosMiccional, setGotejamentoPosMiccional] = useState(null)
+
+  // Protocolo de urgencia (so aparece se a Dra. Katia ativou pra este paciente)
+  const [pesoFraldaInicialG, setPesoFraldaInicialG] = useState('')
+  const [pesoFraldaPosG, setPesoFraldaPosG] = useState('')
+  const [trocouFralda, setTrocouFralda] = useState(false)
+  const [protocoloNaEntrada, setProtocoloNaEntrada] = useState(false)
+  const mostrarProtocolo = !!perfil?.protocoloUrgencia || protocoloNaEntrada
 
   // Campos especificos de "perda"
   const [perda, setPerda] = useState('pequena')
@@ -99,6 +109,14 @@ export default function NovaEntradaPage() {
           setVolumeUrinadoMl(entrada.volumeUrinadoMl ?? '')
           setVolumeUrinadoNivel(entrada.volumeUrinadoNivel || '')
           setUrgencia(entrada.urgencia || '')
+          setEsvaziamentoCompleto(entrada.esvaziamentoCompleto)
+          setGotejamentoPosMiccional(entrada.gotejamentoPosMiccional)
+          setPesoFraldaInicialG(entrada.pesoFraldaInicialG ?? '')
+          setPesoFraldaPosG(entrada.pesoFraldaPosG ?? '')
+          setTrocouFralda(!!entrada.trocouFralda)
+          // Registro antigo feito com o protocolo ativo continua mostrando os campos na
+          // edicao, mesmo que o protocolo tenha sido desligado depois.
+          setProtocoloNaEntrada(entrada.pesoFraldaInicialG != null || entrada.pesoFraldaPosG != null || entrada.trocouFralda != null)
         } else if (entrada.tipoEvento === 'perda') {
           setPerda(entrada.perda)
           setPerdaCategoria(entrada.perdaAtividadeCategoria || '')
@@ -116,7 +134,17 @@ export default function NovaEntradaPage() {
     return () => { ativo = false }
   }, [id, modoEdicao])
 
-  if (!modoEdicao && (!TIPOS_VALIDOS.includes(tipoDaRota) || !ciclo)) {
+  // O peso da fralda seca nao muda: num registro novo, ja vem com o ultimo valor informado.
+  useEffect(() => {
+    if (modoEdicao || !perfil?.protocoloUrgencia) return
+    let ativo = true
+    buscarUltimoPesoFraldaInicial(perfil.id)
+      .then((peso) => { if (ativo && peso != null) setPesoFraldaInicialG((atual) => (atual === '' ? peso : atual)) })
+      .catch(() => {})
+    return () => { ativo = false }
+  }, [modoEdicao, perfil?.id, perfil?.protocoloUrgencia])
+
+  if (!modoEdicao && (!TIPOS_VALIDOS.includes(tipoDaRota) || !ciclo?.dataInicio)) {
     return <Navigate to="/app/diario" replace />
   }
   if (modoEdicao && entradaNaoEncontrada) {
@@ -161,6 +189,12 @@ export default function NovaEntradaPage() {
       volumeUrinadoMl: volumeUrinadoMl === '' ? null : Number(volumeUrinadoMl),
       volumeUrinadoNivel,
       urgencia: urgencia || null,
+      esvaziamentoCompleto,
+      gotejamentoPosMiccional,
+      // Pesos so contam quando houve troca; o total de trocas do dia e somado pelo sistema.
+      trocouFralda: mostrarProtocolo ? trocouFralda : null,
+      pesoFraldaInicialG: mostrarProtocolo && trocouFralda && pesoFraldaInicialG !== '' ? Number(pesoFraldaInicialG) : null,
+      pesoFraldaPosG: mostrarProtocolo && trocouFralda && pesoFraldaPosG !== '' ? Number(pesoFraldaPosG) : null,
       perda,
       perdaAtividadeCategoria: perdaCategoria,
       perdaAtividadeDetalhe: perdaDetalhe,
@@ -212,7 +246,7 @@ export default function NovaEntradaPage() {
         <SeletorNivelVolume value={volumeUrinadoNivel} onChange={setVolumeUrinadoNivel} />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Necessidade urgente de urinar</label>
+        <label className="block text-sm font-medium mb-2">Necessidade de urinar</label>
         <div className="flex flex-wrap gap-2 items-center">
           <button
             type="button"
@@ -229,6 +263,40 @@ export default function NovaEntradaPage() {
           <SeletorSeveridade value={urgencia} onChange={setUrgencia} />
         </div>
       </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Sentiu que esvaziou a bexiga por completo?</label>
+        <SeletorSimNao value={esvaziamentoCompleto} onChange={setEsvaziamentoCompleto} />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Pingou xixi ao se levantar do vaso?</label>
+        <SeletorSimNao value={gotejamentoPosMiccional} onChange={setGotejamentoPosMiccional} />
+      </div>
+      {mostrarProtocolo && (
+        <div className="rounded-xl p-4 space-y-3" style={{ background: colors.background }}>
+          <p className="text-sm font-medium" style={{ color: colors.secondary }}>Protocolo de urgência</p>
+          <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+            <input
+              type="checkbox"
+              checked={trocouFralda}
+              onChange={(e) => setTrocouFralda(e.target.checked)}
+              className="w-5 h-5"
+              style={{ accentColor: colors.primary }}
+            />
+            Troquei a fralda agora
+          </label>
+          {trocouFralda && (
+            <>
+              <CampoNumero
+                label="Peso inicial da fralda (g)"
+                dica="Fralda seca, antes de usar. Fica salvo para os próximos registros."
+                value={pesoFraldaInicialG}
+                onChange={setPesoFraldaInicialG}
+              />
+              <CampoNumero label="Peso da fralda após a troca (g)" value={pesoFraldaPosG} onChange={setPesoFraldaPosG} />
+            </>
+          )}
+        </div>
+      )}
     </>
   )
 
@@ -355,6 +423,25 @@ function SecaoBanheiro({ titulo, marcado, onChange, children }) {
         {titulo}
       </label>
       {marcado && children}
+    </div>
+  )
+}
+
+function CampoNumero({ label, dica, value, onChange }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1">{label}</label>
+      {dica && <p className="text-xs mb-1" style={{ color: colors.textSecondary }}>{dica}</p>}
+      <input
+        type="number"
+        min="0"
+        step="any"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 rounded-lg border text-sm"
+        style={{ borderColor: colors.border, background: colors.surface }}
+      />
     </div>
   )
 }

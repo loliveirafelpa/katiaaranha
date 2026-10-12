@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient'
 
-const CAMPOS = 'id, role, nome_completo, contato, unidade, servico, servico_outro, idade, peso_kg, anonimizado_em, criado_em'
+const CAMPOS = 'id, role, nome_completo, contato, unidade, servico, servico_outro, idade, peso_kg, protocolo_urgencia, anonimizado_em, criado_em'
 
 function paraCamel(row) {
   if (!row) return null
@@ -14,6 +14,7 @@ function paraCamel(row) {
     servicoOutro: row.servico_outro,
     idade: row.idade,
     pesoKg: row.peso_kg,
+    protocoloUrgencia: row.protocolo_urgencia,
     anonimizadoEm: row.anonimizado_em,
     criadoEm: row.criado_em,
   }
@@ -35,6 +36,28 @@ export async function obterPacientePorId(id) {
     .from('profiles')
     .select(CAMPOS)
     .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return paraCamel(data)
+}
+
+// Feito pela admin (RLS: profiles_admin_update_all). E-mail nao entra: e do login
+// (Supabase Auth), nao do perfil.
+export async function atualizarPaciente(id, { nomeCompleto, contato, unidade, servico, idade, pesoKg, protocoloUrgencia }) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      nome_completo: nomeCompleto,
+      contato: contato || null,
+      unidade: unidade || null,
+      servico: servico || null,
+      idade: idade === '' || idade == null ? null : Number(idade),
+      peso_kg: pesoKg === '' || pesoKg == null ? null : Number(pesoKg),
+      protocolo_urgencia: !!protocoloUrgencia,
+    })
+    .eq('id', id)
+    .select(CAMPOS)
     .single()
 
   if (error) throw error

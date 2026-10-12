@@ -14,6 +14,11 @@ function paraCamel(row) {
     volumeUrinadoMl: row.volume_urinado_ml,
     volumeUrinadoNivel: row.volume_urinado_nivel,
     urgencia: row.urgencia,
+    esvaziamentoCompleto: row.esvaziamento_completo,
+    gotejamentoPosMiccional: row.gotejamento_pos_miccional,
+    pesoFraldaInicialG: row.peso_fralda_inicial_g,
+    pesoFraldaPosG: row.peso_fralda_pos_g,
+    trocouFralda: row.trocou_fralda,
     perda: row.perda,
     perdaAtividadeCategoria: row.perda_atividade_categoria,
     perdaAtividadeDetalhe: row.perda_atividade_detalhe,
@@ -67,6 +72,11 @@ function camposPorTipo(tipoEvento, campos) {
     volume_urinado_ml: null,
     volume_urinado_nivel: null,
     urgencia: null,
+    esvaziamento_completo: null,
+    gotejamento_pos_miccional: null,
+    peso_fralda_inicial_g: null,
+    peso_fralda_pos_g: null,
+    trocou_fralda: null,
     perda: null,
     perda_atividade_categoria: null,
     perda_atividade_detalhe: null,
@@ -87,6 +97,11 @@ function camposPorTipo(tipoEvento, campos) {
       volume_urinado_ml: campos.volumeUrinadoMl,
       volume_urinado_nivel: campos.volumeUrinadoNivel || null,
       urgencia: campos.urgencia || null,
+      esvaziamento_completo: campos.esvaziamentoCompleto ?? null,
+      gotejamento_pos_miccional: campos.gotejamentoPosMiccional ?? null,
+      peso_fralda_inicial_g: campos.pesoFraldaInicialG ?? null,
+      peso_fralda_pos_g: campos.pesoFraldaPosG ?? null,
+      trocou_fralda: campos.trocouFralda ?? null,
     }
   }
   if (tipoEvento === 'perda') {
@@ -148,6 +163,21 @@ export async function atualizarEntrada(id, { registradoEm, diaNumero, tipoEvento
 
   if (error) throw error
   return paraCamel(data)
+}
+
+// Protocolo de urgencia: o peso da fralda seca nao muda, entao o formulario ja vem com
+// o ultimo valor que o paciente informou (em qualquer ciclo).
+export async function buscarUltimoPesoFraldaInicial(pacienteId) {
+  const { data, error } = await supabase
+    .from('entradas_diario')
+    .select('peso_fralda_inicial_g')
+    .eq('paciente_id', pacienteId)
+    .not('peso_fralda_inicial_g', 'is', null)
+    .order('registrado_em', { ascending: false })
+    .limit(1)
+
+  if (error) throw error
+  return data[0]?.peso_fralda_inicial_g ?? null
 }
 
 export async function excluirEntrada(id) {

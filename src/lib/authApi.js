@@ -24,7 +24,7 @@ export async function getPerfilAtual() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, nome_completo, contato, unidade, anonimizado_em, criado_em')
+    .select('id, role, nome_completo, contato, unidade, idade, peso_kg, protocolo_urgencia, anonimizado_em, criado_em')
     .eq('id', user.id)
     .single()
 
@@ -36,6 +36,9 @@ export async function getPerfilAtual() {
     nomeCompleto: data.nome_completo,
     contato: data.contato,
     unidade: data.unidade,
+    idade: data.idade,
+    pesoKg: data.peso_kg,
+    protocoloUrgencia: data.protocolo_urgencia,
     anonimizadoEm: data.anonimizado_em,
     criadoEm: data.criado_em,
   }

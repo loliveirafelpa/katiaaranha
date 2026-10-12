@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useOutletContext, useParams } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { obterPacientePorId } from '../../../lib/perfisApi'
 import { solicitarExclusaoPaciente } from '../../../lib/pacientesApi'
-import { listarCiclosPorPaciente, criarCiclo, calcularDiaAtual, calcularStatusCiclo } from '../../../lib/ciclosDiarioApi'
+import { listarCiclosPorPaciente, criarCiclo, calcularDiaAtual, cicloAguardandoInicio } from '../../../lib/ciclosDiarioApi'
 import { listarEntradasPorCiclo } from '../../../lib/entradasDiarioApi'
 import { listarObservacoesPorCiclo } from '../../../lib/observacoesApi'
 import { listarNotasPorPaciente, criarNota, excluirNota } from '../../../lib/notasClinicasApi'
@@ -12,14 +12,21 @@ import {
   calcularPerdasPorAtividade,
   calcularCorrelacaoPerdaAtividade,
   calcularNocturia,
+  calcularFraldaPorDia,
 } from '../../../lib/indicadoresCalculo'
 import TabelaDiariaEstiloPapel from '../../../components/TabelaDiariaEstiloPapel'
+import TabelaDiarioFolha from '../../../components/TabelaDiarioFolha'
+import ComparativosCiclos from '../../../components/ComparativosCiclos'
 import NotaClinicaForm from '../../../components/NotaClinicaForm'
-import StatusCicloBadge from '../../../components/StatusCicloBadge'
+import PrescricaoExercicios from '../../../components/PrescricaoExercicios'
+import OrientacoesPaciente from '../../../components/OrientacoesPaciente'
 import ModalConfirmacaoExclusao from '../../../components/ModalConfirmacaoExclusao'
+import ComentariosGrafico, { ComentariosGraficosProvider } from '../../../components/ComentariosGrafico'
 import { labelServico } from '../../../data/servicos'
 import { ATIVIDADES_PERDA } from '../../../data/atividadesPerda'
 import { calcularMetaLiquidoMl, formatarMetaLiquido } from '../../../lib/metaLiquido'
+import CabecalhoPagina, { AvatarIniciais, BotaoAcao } from '../../../components/CabecalhoPagina'
+import { Pencil, Trash2 } from 'lucide-react'
 import { colors } from '../../../theme'
 
 const LABEL_UNIDADE = { campinas: 'Campinas', jundiai: 'Jundiaí' }
@@ -28,7 +35,9 @@ const LABEL_ATIVIDADE = Object.fromEntries(ATIVIDADES_PERDA.map((a) => [a.valor,
 const ABAS = [
   { id: 'diario', label: 'Diário' },
   { id: 'graficos', label: 'Gráficos' },
+  { id: 'comparativos', label: 'Comparativos' },
   { id: 'observacoes', label: 'Observações' },
+  { id: 'exercicios', label: 'Exercícios/Orientações' },
   { id: 'notas', label: 'Notas clínicas' },
   { id: 'ciclos', label: 'Ciclos' },
 ]
@@ -42,6 +51,21 @@ function Barra({ label, valor, maximo }) {
         <div className="h-3 rounded-full" style={{ width: `${percentual}%`, background: colors.primary }} />
       </div>
       <span className="w-6 text-right text-xs" style={{ color: colors.textSecondary }}>{valor}</span>
+    </div>
+  )
+}
+
+// Barra de um valor so, sem trilho de fundo (area vazia colorida era lida como dado).
+function BarraValor({ label, valor, maximo, unidade = '' }) {
+  return (
+    <div className="flex items-center gap-3 text-sm mb-1.5">
+      <span className="w-16 shrink-0" style={{ color: colors.textSecondary }}>{label}</span>
+      <div className="flex-1 h-5">
+        {valor > 0 && <div className="h-5 rounded" style={{ width: `${(valor / maximo) * 100}%`, background: colors.primary }} />}
+      </div>
+      <span className="w-14 text-right text-xs font-medium" style={{ color: colors.text }}>
+        {valor == null ? '—' : `${valor.toLocaleString('pt-BR')}${unidade}`}
+      </span>
     </div>
   )
 }
@@ -79,12 +103,14 @@ function BarraSeveridadeDia({ label, contagem, maximo }) {
   return (
     <div className="flex items-center gap-3 text-sm mb-1.5">
       <span className="w-16 shrink-0" style={{ color: colors.textSecondary }}>{label}</span>
-      <div className="flex-1 h-5 rounded-full overflow-hidden flex" style={{ background: colors.border }}>
+      {/* Sem fundo: a barra termina onde terminam os registros, pra area vazia nao
+          parecer mais uma categoria da legenda. */}
+      <div className="flex-1 h-5 flex gap-[2px]">
         {total > 0 && ['pequena', 'moderada', 'intensa'].map((chave) => (
           contagem[chave] > 0 && (
             <div
               key={chave}
-              className="h-5 flex items-center justify-center text-[10px] font-semibold text-white"
+              className="h-5 rounded flex items-center justify-center text-[10px] font-semibold text-white"
               style={{ width: `${(contagem[chave] / maximo) * 100}%`, background: SEVERIDADE_COR[chave] }}
             >
               {contagem[chave]}
@@ -117,7 +143,7 @@ function CelulaCalor({ valor, maximo, cor }) {
 // Converte o numero do dia do ciclo pra data de calendario de verdade (ex.: "15/09/26"),
 // pra facilitar a leitura pra profissional em vez de um numero abstrato tipo "Dia 3".
 function formatarDataDoDia(cicloSelecionado, diaNumero) {
-  if (!cicloSelecionado) return `Dia ${diaNumero}`
+  if (!cicloSelecionado?.dataInicio) return `Dia ${diaNumero}`
   const data = new Date(`${cicloSelecionado.dataInicio}T00:00:00`)
   data.setDate(data.getDate() + diaNumero - 1)
   return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
@@ -138,7 +164,6 @@ export default function PacienteDetalhePage() {
   const [ordenacaoDiario, setOrdenacaoDiario] = useState('horario')
   const [carregando, setCarregando] = useState(true)
 
-  const [novaDataInicio, setNovaDataInicio] = useState(() => new Date().toISOString().slice(0, 10))
   const [criandoCiclo, setCriandoCiclo] = useState(false)
   const [erroCiclo, setErroCiclo] = useState('')
   const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false)
@@ -154,7 +179,9 @@ export default function PacienteDetalhePage() {
     setPaciente(pacienteData)
     setCiclos(ciclosData)
     setNotas(notasData)
-    setCicloSelecionadoId(ciclosData[0]?.id ?? null)
+    // Abre no ciclo mais recente que ja comecou - um ciclo recem-aberto, ainda sem data,
+    // nao tem nada pra mostrar.
+    setCicloSelecionadoId((ciclosData.find((c) => c.dataInicio) || ciclosData[0])?.id ?? null)
     setCarregando(false)
   }, [id])
 
@@ -181,29 +208,16 @@ export default function PacienteDetalhePage() {
     return () => { ativo = false }
   }, [cicloSelecionadoId])
 
-  async function handleCriarCiclo(e) {
-    e.preventDefault()
+  // A admin so abre o ciclo; o dia de inicio quem escolhe e o paciente, pelo app.
+  async function handleCriarCiclo() {
     setErroCiclo('')
-
-    // Ciclos ja vem ordenados por data_inicio desc, entao ciclos[0] e o mais recente.
-    const maisRecente = ciclos[0]
-    if (maisRecente && novaDataInicio <= maisRecente.dataInicio) {
-      const dataFormatada = new Date(`${maisRecente.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')
-      setErroCiclo(`Já existe um ciclo deste paciente começando em ${dataFormatada}. O novo ciclo precisa começar depois dessa data.`)
-      return
-    }
-
     setCriandoCiclo(true)
     try {
-      await criarCiclo({
-        pacienteId: id,
-        dataInicio: novaDataInicio,
-        criadoPor: perfil.id,
-      })
+      await criarCiclo({ pacienteId: id, criadoPor: perfil.id })
       await carregarBase()
     } catch (err) {
-      if (err.message?.includes('ciclo_data_inicio_conflitante')) {
-        setErroCiclo('Já existe um ciclo deste paciente começando nessa data ou depois dela. O novo ciclo precisa começar depois do ciclo mais recente.')
+      if (err.message?.includes('ciclo_pendente_existente')) {
+        setErroCiclo('Este paciente já tem um ciclo aberto aguardando início.')
       } else {
         setErroCiclo(err.message || 'Não foi possível criar o ciclo. Tente novamente.')
       }
@@ -244,13 +258,12 @@ export default function PacienteDetalhePage() {
   }
 
   const cicloSelecionado = ciclos.find((c) => c.id === cicloSelecionadoId) || null
-  const status = calcularStatusCiclo(cicloSelecionado)
-  const diaAtual = cicloSelecionado ? calcularDiaAtual(cicloSelecionado) : null
 
   const resumoPorDia = calcularResumoPorDia(entradas)
   const balanco = calcularBalancoHidrico(entradas)
   const { contagem: perdasContagem, outros: perdasOutros } = calcularPerdasPorAtividade(entradas)
   const nocturia = calcularNocturia(entradas)
+  const maxNocturiaPorDia = Math.max(1, ...Object.values(nocturia.porDia))
   const maxPerdas = Math.max(1, ...Object.values(perdasContagem), ...perdasOutros.map((o) => o.quantidade))
   const totalPerdasPorAtividade = Object.values(perdasContagem).reduce((a, b) => a + b, 0) + perdasOutros.reduce((a, o) => a + o.quantidade, 0)
 
@@ -262,80 +275,127 @@ export default function PacienteDetalhePage() {
     1,
     ...resumoPorDia.map((r) => r.contagemUrgencia.pequena + r.contagemUrgencia.moderada + r.contagemUrgencia.intensa)
   )
+  const maxPerdaPorDia = Math.max(
+    1,
+    ...resumoPorDia.map((r) => r.contagemPerda.pequena + r.contagemPerda.moderada + r.contagemPerda.intensa)
+  )
 
   const correlacaoPerdaAtividade = calcularCorrelacaoPerdaAtividade(entradas)
+  const fraldaPorDia = calcularFraldaPorDia(entradas)
+  const maxUrinaFralda = Math.max(1, ...fraldaPorDia.map((d) => d.urinaFraldaG ?? 0))
+  const maxTrocas = Math.max(1, ...fraldaPorDia.map((d) => d.trocas ?? 0))
   const maxCorrelacao = Math.max(
     1,
     ...correlacaoPerdaAtividade.flatMap((l) => [l.contagem.pequena, l.contagem.moderada, l.contagem.intensa])
   )
 
   return (
+    <ComentariosGraficosProvider pacienteId={id} autorId={perfil.id}>
     <div className="space-y-5">
+      <CabecalhoPagina
+        voltar={{ to: '/app/admin/pacientes', label: 'Pacientes' }}
+        antesDoTitulo={<AvatarIniciais nome={paciente.nomeCompleto} tamanho={56} />}
+        titulo={paciente.nomeCompleto}
+        subtitulo={
+          <>
+            <span className="flex flex-wrap items-center gap-2 mt-1.5">
+              <span
+                className="px-3 py-1 rounded-full text-sm font-semibold"
+                style={
+                  labelServico(paciente)
+                    ? { backgroundColor: colors.primary, color: colors.surface }
+                    : { border: `1px dashed ${colors.border}`, color: colors.textSecondary }
+                }
+              >
+                {labelServico(paciente) || 'Sem serviço definido'}
+              </span>
+              {paciente.protocoloUrgencia && (
+                <span
+                  className="px-3 py-1 rounded-full text-sm font-semibold"
+                  style={{ border: `1px solid ${colors.primary}`, color: colors.primary }}
+                >
+                  Protocolo de urgência
+                </span>
+              )}
+            </span>
+            <span className="block mt-1.5 text-xs">
+              {paciente.unidade ? LABEL_UNIDADE[paciente.unidade] : 'Sem unidade'}
+              {paciente.contato ? ` · ${paciente.contato}` : ''}
+              {paciente.idade ? ` · ${paciente.idade} anos` : ''}
+              {paciente.pesoKg ? ` · ${paciente.pesoKg} kg` : ''}
+            </span>
+          </>
+        }
+        acoes={
+          <>
+            <BotaoAcao as={Link} to={`/app/admin/pacientes/${id}/editar`} Icone={Pencil}>Editar cadastro</BotaoAcao>
+            <BotaoAcao onClick={() => setModalExclusaoAberto(true)} Icone={Trash2} perigo>Excluir</BotaoAcao>
+          </>
+        }
+      />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold" style={{ color: colors.secondary }}>{paciente.nomeCompleto}</h1>
-          <p className="text-xs" style={{ color: colors.textSecondary }}>
-            {paciente.unidade ? LABEL_UNIDADE[paciente.unidade] : 'Sem unidade'}
-            {labelServico(paciente) ? ` · ${labelServico(paciente)}` : ''}
-            {paciente.contato ? ` · ${paciente.contato}` : ''}
-            {paciente.idade ? ` · ${paciente.idade} anos` : ''}
-            {paciente.pesoKg ? ` · ${paciente.pesoKg} kg` : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {cicloSelecionado && <StatusCicloBadge status={status} diaAtual={diaAtual} />}
-          <button
-            onClick={() => setModalExclusaoAberto(true)}
-            className="text-xs underline"
-            style={{ color: colors.danger }}
-          >
-            Excluir paciente
-          </button>
-        </div>
-      </div>
-
-      {ciclos.length > 1 && (
-        <select
-          value={cicloSelecionadoId || ''}
-          onChange={(e) => setCicloSelecionadoId(e.target.value)}
-          className="px-3 py-2 rounded-lg border text-sm"
-          style={{ borderColor: colors.border }}
+        <div
+          role="tablist"
+          aria-label="Seções do paciente"
+          className="flex gap-1 p-1 rounded-2xl overflow-x-auto max-w-full"
+          style={{ background: colors.surface, border: `1px solid ${colors.border}` }}
         >
-          {ciclos.map((c) => (
-            <option key={c.id} value={c.id}>
-              Ciclo iniciado em {new Date(`${c.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')}
-            </option>
+          {ABAS.map((a) => (
+            <button
+              key={a.id}
+              role="tab"
+              aria-selected={aba === a.id}
+              onClick={() => setAba(a.id)}
+              className="px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap focus-visible:outline-2"
+              style={{
+                background: aba === a.id ? colors.background : 'transparent',
+                color: aba === a.id ? colors.secondary : colors.textSecondary,
+                fontWeight: aba === a.id ? 600 : 500,
+                outlineColor: colors.primary,
+              }}
+            >
+              {a.label}
+            </button>
           ))}
-        </select>
-      )}
+        </div>
 
-      <div className="flex gap-2 border-b overflow-x-auto" style={{ borderColor: colors.border }}>
-        {ABAS.map((a) => (
-          <button
-            key={a.id}
-            onClick={() => setAba(a.id)}
-            className="px-3 py-2 text-sm font-medium whitespace-nowrap border-b-2"
-            style={{
-              borderColor: aba === a.id ? colors.primary : 'transparent',
-              color: aba === a.id ? colors.primary : colors.textSecondary,
-            }}
-          >
-            {a.label}
-          </button>
-        ))}
+        {ciclos.length > 1 && aba !== 'comparativos' && (
+          <label className="flex items-center gap-2 text-sm" style={{ color: colors.textSecondary }}>
+            Ver
+            <select
+              value={cicloSelecionadoId || ''}
+              onChange={(e) => setCicloSelecionadoId(e.target.value)}
+              className="px-3 py-2 rounded-full border text-sm font-medium"
+              style={{ borderColor: colors.border, background: colors.surface, color: colors.secondary }}
+            >
+              {/* ciclos vem do mais recente pro mais antigo, entao o numero e contado de tras pra frente */}
+              {ciclos.map((c, i) => (
+                <option key={c.id} value={c.id}>
+                  Ciclo {ciclos.length - i}{c.dataInicio ? '' : ' (aguardando paciente iniciar)'}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
-      {!cicloSelecionado && aba !== 'ciclos' && aba !== 'notas' ? (
+      {!cicloSelecionado && aba !== 'ciclos' && aba !== 'notas' && aba !== 'exercicios' ? (
         <p style={{ color: colors.textSecondary }}>Nenhum ciclo de diário criado ainda para este paciente.</p>
+      ) : cicloAguardandoInicio(cicloSelecionado) && ['diario', 'graficos', 'observacoes'].includes(aba) ? (
+        <p style={{ color: colors.textSecondary }}>
+          Este ciclo foi aberto e está aguardando o paciente escolher o dia de início no app.
+        </p>
       ) : (
         <>
           {aba === 'diario' && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm justify-end">
-                <span style={{ color: colors.textSecondary }}>Ordenar por:</span>
+                <span style={{ color: colors.textSecondary }}>Visualizar por:</span>
                 {[
                   { valor: 'horario', label: 'Horário' },
                   { valor: 'tipo', label: 'Tipo' },
+                  { valor: 'tabela', label: 'Tabela' },
                 ].map((opcao) => (
                   <button
                     key={opcao.valor}
@@ -351,7 +411,11 @@ export default function PacienteDetalhePage() {
                   </button>
                 ))}
               </div>
-              <TabelaDiariaEstiloPapel entradas={entradas} ordenacao={ordenacaoDiario} />
+              {ordenacaoDiario === 'tabela' ? (
+                <TabelaDiarioFolha ciclo={cicloSelecionado} entradas={entradas} />
+              ) : (
+                <TabelaDiariaEstiloPapel entradas={entradas} ordenacao={ordenacaoDiario} />
+              )}
             </div>
           )}
 
@@ -360,7 +424,8 @@ export default function PacienteDetalhePage() {
               <p className="text-sm" style={{ color: colors.textSecondary }}>
                 Os números abaixo somam o ciclo inteiro selecionado, do início até hoje — não são o total de um dia isolado.
               </p>
-              <div className={`grid grid-cols-1 gap-3 ${metaLiquidoDiaria ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
+              <div className={`grid grid-cols-2 gap-3 ${metaLiquidoDiaria ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
+                <CardDestaque valor={resumoPorDia.length} label={resumoPorDia.length === 1 ? 'Dia com registro' : 'Dias com registro'} />
                 <CardDestaque valor={`${totalLiquidoIngeridoMl} ml`} label="Total de líquido ingerido" />
                 <CardDestaque valor={totalRegistrosUrina} label="Total de registros de urina" />
                 <CardDestaque valor={totalEpisodiosPerda} label="Episódios de perda" />
@@ -368,9 +433,6 @@ export default function PacienteDetalhePage() {
                   <CardDestaque valor={metaLiquidoDiaria} label="Meta diária de líquido recomendada" />
                 )}
               </div>
-              <p className="text-xs -mt-3" style={{ color: colors.textSecondary }}>
-                Noctúria: {nocturia.total} {nocturia.total === 1 ? 'ida noturna registrada' : 'idas noturnas registradas'}
-              </p>
 
               <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
                 <h3 className="font-medium mb-3" style={{ color: colors.secondary }}>Balanço hídrico por dia (ml)</h3>
@@ -398,6 +460,7 @@ export default function PacienteDetalhePage() {
                     </tbody>
                   </table>
                 )}
+                <ComentariosGrafico grafico="graficos:balanco-hidrico" cicloId={cicloSelecionadoId} />
               </div>
 
               <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
@@ -420,39 +483,75 @@ export default function PacienteDetalhePage() {
                     ))}
                   </>
                 )}
+                <ComentariosGrafico grafico="graficos:urgencia" cicloId={cicloSelecionadoId} />
               </div>
 
               <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-                <h3 className="font-medium mb-3" style={{ color: colors.secondary }}>Balanço de perdas por dia</h3>
+                <h3 className="font-medium mb-1" style={{ color: colors.secondary }}>Idas noturnas ao banheiro</h3>
+                <p className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+                  Xixis registrados entre 23h e 6h em cada dia (noctúria)
+                </p>
                 {resumoPorDia.length === 0 ? (
                   <p className="text-sm" style={{ color: colors.textSecondary }}>Sem dados ainda.</p>
                 ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ color: colors.textSecondary }}>
-                        <th className="text-left font-normal py-1">Dia</th>
-                        <th className="text-left font-normal py-1">Leve</th>
-                        <th className="text-left font-normal py-1">Moderada</th>
-                        <th className="text-left font-normal py-1">Intensa</th>
-                        <th className="text-left font-normal py-1">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {resumoPorDia.map((r) => (
-                        <tr key={r.diaNumero} className="border-t" style={{ borderColor: colors.border }}>
-                          <td className="py-1">{formatarDataDoDia(cicloSelecionado, r.diaNumero)}</td>
-                          <td className="py-1">{r.contagemPerda.pequena}</td>
-                          <td className="py-1">{r.contagemPerda.moderada}</td>
-                          <td className="py-1">{r.contagemPerda.intensa}</td>
-                          <td className="py-1 font-medium">
-                            {r.contagemPerda.pequena + r.contagemPerda.moderada + r.contagemPerda.intensa}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  resumoPorDia.map((r) => (
+                    <BarraValor
+                      key={r.diaNumero}
+                      label={formatarDataDoDia(cicloSelecionado, r.diaNumero)}
+                      valor={nocturia.porDia[r.diaNumero] || 0}
+                      maximo={maxNocturiaPorDia}
+                    />
+                  ))
                 )}
+                <ComentariosGrafico grafico="graficos:noturnas" cicloId={cicloSelecionadoId} />
               </div>
+
+              <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
+                <h3 className="font-medium mb-1" style={{ color: colors.secondary }}>Balanço de perdas por dia</h3>
+                <p className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+                  Perdas de urina em cada dia, por intensidade
+                </p>
+                {resumoPorDia.length === 0 ? (
+                  <p className="text-sm" style={{ color: colors.textSecondary }}>Sem dados ainda.</p>
+                ) : (
+                  <>
+                    <LegendaSeveridade />
+                    {resumoPorDia.map((r) => (
+                      <BarraSeveridadeDia
+                        key={r.diaNumero}
+                        label={formatarDataDoDia(cicloSelecionado, r.diaNumero)}
+                        contagem={r.contagemPerda}
+                        maximo={maxPerdaPorDia}
+                      />
+                    ))}
+                  </>
+                )}
+                <ComentariosGrafico grafico="graficos:perdas-por-dia" cicloId={cicloSelecionadoId} />
+              </div>
+
+              {fraldaPorDia.length > 0 && (
+                <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
+                  <h3 className="font-medium mb-1" style={{ color: colors.secondary }}>Protocolo de urgência — fralda</h3>
+                  <p className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+                    Urina na fralda = peso após a troca − peso inicial da fralda (1 g ≈ 1 ml).
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-sm font-medium mb-2">Urina na fralda por dia (g)</p>
+                      {fraldaPorDia.map((d) => (
+                        <BarraValor key={d.diaNumero} label={formatarDataDoDia(cicloSelecionado, d.diaNumero)} valor={d.urinaFraldaG} maximo={maxUrinaFralda} unidade=" g" />
+                      ))}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium mb-2">Trocas de fralda por dia</p>
+                      {fraldaPorDia.map((d) => (
+                        <BarraValor key={d.diaNumero} label={formatarDataDoDia(cicloSelecionado, d.diaNumero)} valor={d.trocas} maximo={maxTrocas} />
+                      ))}
+                    </div>
+                  </div>
+                  <ComentariosGrafico grafico="graficos:fralda" cicloId={cicloSelecionadoId} />
+                </div>
+              )}
 
               <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
                 <h3 className="font-medium mb-3" style={{ color: colors.secondary }}>Perdas por atividade</h3>
@@ -460,16 +559,20 @@ export default function PacienteDetalhePage() {
                   <p className="text-sm" style={{ color: colors.textSecondary }}>Nenhum episódio de perda registrado.</p>
                 ) : (
                   <>
-                    {Object.entries(perdasContagem)
-                      .filter(([, valor]) => valor > 0)
-                      .map(([categoria, valor]) => (
-                        <Barra key={categoria} label={LABEL_ATIVIDADE[categoria]} valor={valor} maximo={maxPerdas} />
+                    {/* Regra: sempre da atividade mais frequente pra menos frequente,
+                        misturando as categorias fixas com os "outro" escritos pelo paciente. */}
+                    {[
+                      ...Object.entries(perdasContagem).map(([categoria, valor]) => ({ chave: categoria, label: LABEL_ATIVIDADE[categoria], valor })),
+                      ...perdasOutros.map((o) => ({ chave: `outro:${o.texto}`, label: o.texto, valor: o.quantidade })),
+                    ]
+                      .filter((item) => item.valor > 0)
+                      .sort((a, b) => b.valor - a.valor)
+                      .map((item) => (
+                        <Barra key={item.chave} label={item.label} valor={item.valor} maximo={maxPerdas} />
                       ))}
-                    {perdasOutros.map((o) => (
-                      <Barra key={o.texto} label={o.texto} valor={o.quantidade} maximo={maxPerdas} />
-                    ))}
                   </>
                 )}
+                <ComentariosGrafico grafico="graficos:perdas-por-atividade" cicloId={cicloSelecionadoId} />
               </div>
 
               <div className="rounded-2xl p-4" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
@@ -506,6 +609,7 @@ export default function PacienteDetalhePage() {
                     </tbody>
                   </table>
                 )}
+                <ComentariosGrafico grafico="graficos:perda-x-atividade" cicloId={cicloSelecionadoId} />
               </div>
             </div>
           )}
@@ -545,6 +649,15 @@ export default function PacienteDetalhePage() {
             </div>
           )}
 
+          {aba === 'exercicios' && (
+            <div className="space-y-6">
+              <OrientacoesPaciente pacienteId={id} adminId={perfil.id} />
+              <PrescricaoExercicios pacienteId={id} adminId={perfil.id} />
+            </div>
+          )}
+
+          {aba === 'comparativos' && <ComparativosCiclos ciclos={ciclos.filter((c) => c.dataInicio)} />}
+
           {aba === 'notas' && (
             <div className="space-y-4">
               <NotaClinicaForm onSalvar={handleAdicionarNota} />
@@ -573,44 +686,42 @@ export default function PacienteDetalhePage() {
 
           {aba === 'ciclos' && (
             <div className="space-y-4">
-              <ul className="space-y-2">
-                {ciclos.map((c) => (
-                  <li key={c.id} className="rounded-xl p-3 text-sm" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-                    Início em {new Date(`${c.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')}
-                  </li>
-                ))}
-              </ul>
-
-              <form
-                onSubmit={handleCriarCiclo}
-                className="rounded-xl p-4 space-y-3"
-                style={{ background: colors.surface, border: `1px solid ${colors.border}` }}
-              >
-                <h3 className="font-medium" style={{ color: colors.secondary }}>Iniciar novo ciclo</h3>
-                <p className="text-xs" style={{ color: colors.textSecondary }}>
-                  O paciente registra livremente, sem uma quantidade fixa de dias.
+              <div className="rounded-xl p-4 space-y-3" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
+                <p className="text-sm" style={{ color: colors.textSecondary }}>
+                  Ao cadastrar um novo ciclo, ele fica disponível automaticamente para o paciente, que escolhe a data de início.
                 </p>
-                <div>
-                  <label className="block text-xs mb-1" style={{ color: colors.textSecondary }}>Data de início</label>
-                  <input
-                    type="date"
-                    value={novaDataInicio}
-                    onChange={(e) => setNovaDataInicio(e.target.value)}
-                    min={ciclos[0] ? new Date(new Date(`${ciclos[0].dataInicio}T00:00:00`).getTime() + 86400000).toISOString().slice(0, 10) : undefined}
-                    className="px-3 py-2 rounded-lg border text-sm"
-                    style={{ borderColor: colors.border }}
-                  />
-                </div>
+                {cicloAguardandoInicio(ciclos[0]) ? (
+                  <p className="text-sm font-medium" style={{ color: colors.secondary }}>
+                    Novo ciclo aberto, aguardando o paciente.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleCriarCiclo}
+                    disabled={criandoCiclo}
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-60"
+                    style={{ background: colors.primary }}
+                  >
+                    {criandoCiclo ? 'Abrindo...' : '+ Acrescentar novo ciclo'}
+                  </button>
+                )}
                 {erroCiclo && <p className="text-sm" style={{ color: colors.danger }}>{erroCiclo}</p>}
-                <button
-                  type="submit"
-                  disabled={criandoCiclo}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-60"
-                  style={{ background: colors.primary }}
-                >
-                  {criandoCiclo ? 'Criando...' : 'Criar ciclo'}
-                </button>
-              </form>
+              </div>
+
+              {ciclos.length > 0 && (
+                <ul className="space-y-2">
+                  {ciclos.map((c, i) => (
+                    <li key={c.id} className="rounded-xl p-3 text-sm flex items-center justify-between gap-3" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
+                      <span className="font-medium">Ciclo {ciclos.length - i}</span>
+                      <span style={{ color: colors.textSecondary }}>
+                        {c.dataInicio
+                          ? `Iniciado pelo paciente em ${new Date(`${c.dataInicio}T00:00:00`).toLocaleDateString('pt-BR')}`
+                          : 'Aguardando paciente iniciar'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </>
@@ -625,5 +736,6 @@ export default function PacienteDetalhePage() {
         confirmando={excluindoPaciente}
       />
     </div>
+    </ComentariosGraficosProvider>
   )
 }

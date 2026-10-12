@@ -14,6 +14,9 @@ import ObservacoesDiaPage from './pages/app/paciente/ObservacoesDiaPage'
 import PacientesListaPage from './pages/app/admin/PacientesListaPage'
 import NovoPacientePage from './pages/app/admin/NovoPacientePage'
 import PacienteDetalhePage from './pages/app/admin/PacienteDetalhePage'
+import ExerciciosCatalogoPage from './pages/app/admin/ExerciciosCatalogoPage'
+import EditarPacientePage from './pages/app/admin/EditarPacientePage'
+import MeusExerciciosPage from './pages/app/paciente/MeusExerciciosPage'
 
 export default function App() {
   return (
@@ -36,6 +39,9 @@ export default function App() {
         <Route path="admin/pacientes" element={<PacientesListaPage />} />
         <Route path="admin/pacientes/novo" element={<NovoPacientePage />} />
         <Route path="admin/pacientes/:id" element={<PacienteDetalhePage />} />
+        <Route path="admin/pacientes/:id/editar" element={<EditarPacientePage />} />
+        <Route path="admin/exercicios" element={<ExerciciosCatalogoPage />} />
+        <Route path="exercicios" element={<MeusExerciciosPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

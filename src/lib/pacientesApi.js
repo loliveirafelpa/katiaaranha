@@ -15,8 +15,8 @@ async function chamarEdgeFunction(nome, body) {
   return data
 }
 
-export async function criarPaciente({ nomeCompleto, email, contato, unidade, servico, servicoOutro, idade, pesoKg }) {
-  return chamarEdgeFunction('criar-paciente', { nomeCompleto, email, contato, unidade, servico, servicoOutro, idade, pesoKg })
+export async function criarPaciente({ nomeCompleto, email, contato, unidade, servico, servicoOutro, idade, pesoKg, protocoloUrgencia }) {
+  return chamarEdgeFunction('criar-paciente', { nomeCompleto, email, contato, unidade, servico, servicoOutro, idade, pesoKg, protocoloUrgencia })
 }
 
 export async function solicitarExclusaoPaciente(pacienteId) {

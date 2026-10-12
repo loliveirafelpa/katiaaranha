@@ -2,8 +2,9 @@ import { GlassWater, Toilet, Droplet, CircleDot } from 'lucide-react'
 import { colors } from '../theme'
 import { labelAtividadePerda } from '../data/atividadesPerda'
 import { labelEscalaFezes } from '../data/escalaFezes'
+import { urinaNaFraldaG } from '../lib/indicadoresCalculo'
 
-const LABEL_LIQUIDO = {
+export const LABEL_LIQUIDO = {
   agua: 'Água', cafe: 'Café', cha: 'Chá', suco: 'Suco',
   refrigerante: 'Refrigerante', alcool: 'Álcool', outro: 'Outro',
 }
@@ -50,7 +51,13 @@ function descreverEntrada(e) {
   }
   if (e.tipoEvento === 'urinario') {
     const volume = e.volumeUrinadoMl != null ? `${e.volumeUrinadoMl} ml` : 'Volume não informado'
-    return `${volume}${e.volumeUrinadoNivel ? ` (${LABEL_NIVEL[e.volumeUrinadoNivel]})` : ''}${e.urgencia ? ` · urgência ${e.urgencia}` : ''}`
+    const esvaziamento = e.esvaziamentoCompleto == null ? '' : ` · ${e.esvaziamentoCompleto ? 'esvaziou' : 'não esvaziou'} a bexiga`
+    const gotejamento = e.gotejamentoPosMiccional ? ' · pingou ao levantar' : ''
+    const urinaFralda = urinaNaFraldaG(e)
+    const fralda = urinaFralda != null
+      ? ` · trocou a fralda: ${e.pesoFraldaInicialG} → ${e.pesoFraldaPosG} g (${urinaFralda} g de urina)`
+      : e.trocouFralda ? ' · trocou a fralda' : ''
+    return `${volume}${e.volumeUrinadoNivel ? ` (${LABEL_NIVEL[e.volumeUrinadoNivel]})` : ''}${e.urgencia ? ` · urgência ${e.urgencia}` : ''}${esvaziamento}${gotejamento}${fralda}`
   }
   if (e.tipoEvento === 'perda') {
     const atividade = labelAtividadePerda(e.perdaAtividadeCategoria, e.perdaAtividadeDetalhe)
