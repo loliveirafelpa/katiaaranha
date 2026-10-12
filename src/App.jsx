@@ -17,6 +17,7 @@ import PacienteDetalhePage from './pages/app/admin/PacienteDetalhePage'
 import ExerciciosCatalogoPage from './pages/app/admin/ExerciciosCatalogoPage'
 import EditarPacientePage from './pages/app/admin/EditarPacientePage'
 import MeusExerciciosPage from './pages/app/paciente/MeusExerciciosPage'
+import MinhaContaPage from './pages/app/admin/MinhaContaPage'
 
 export default function App() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="admin/pacientes/:id" element={<PacienteDetalhePage />} />
         <Route path="admin/pacientes/:id/editar" element={<EditarPacientePage />} />
         <Route path="admin/exercicios" element={<ExerciciosCatalogoPage />} />
+        <Route path="admin/minha-conta" element={<MinhaContaPage />} />
         <Route path="exercicios" element={<MeusExerciciosPage />} />
       </Route>
 

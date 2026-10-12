@@ -3,8 +3,9 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import { atualizarMeuPerfil } from '../../lib/perfisApi'
 import { revogarConsentimento } from '../../lib/consentimentosApi'
 import { solicitarExclusaoPaciente } from '../../lib/pacientesApi'
-import { logout, trocarSenha } from '../../lib/authApi'
+import { logout } from '../../lib/authApi'
 import ModalConfirmacaoExclusao from '../../components/ModalConfirmacaoExclusao'
+import TrocarSenhaCard from '../../components/TrocarSenhaCard'
 import { colors } from '../../theme'
 
 export default function MeusDadosPage() {
@@ -16,11 +17,6 @@ export default function MeusDadosPage() {
   const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false)
   const [excluindo, setExcluindo] = useState(false)
 
-  const [novaSenha, setNovaSenha] = useState('')
-  const [confirmarSenha, setConfirmarSenha] = useState('')
-  const [trocandoSenha, setTrocandoSenha] = useState(false)
-  const [erroSenha, setErroSenha] = useState('')
-  const [mensagemSenha, setMensagemSenha] = useState('')
 
   async function handleSalvarContato() {
     setSalvando(true)
@@ -36,32 +32,6 @@ export default function MeusDadosPage() {
   async function handleRevogarConsentimento() {
     await revogarConsentimento(perfil.id)
     setMensagem('Consentimento revogado. Você precisará aceitar novamente para continuar usando o diário.')
-  }
-
-  async function handleTrocarSenha() {
-    setErroSenha('')
-    setMensagemSenha('')
-
-    if (novaSenha.length < 6) {
-      setErroSenha('A senha precisa ter pelo menos 6 caracteres.')
-      return
-    }
-    if (novaSenha !== confirmarSenha) {
-      setErroSenha('As senhas não coincidem.')
-      return
-    }
-
-    setTrocandoSenha(true)
-    try {
-      await trocarSenha(novaSenha)
-      setNovaSenha('')
-      setConfirmarSenha('')
-      setMensagemSenha('Senha atualizada com sucesso.')
-    } catch (err) {
-      setErroSenha(err.message || 'Não foi possível trocar a senha. Tente novamente.')
-    } finally {
-      setTrocandoSenha(false)
-    }
   }
 
   async function handleExcluir() {
@@ -102,42 +72,7 @@ export default function MeusDadosPage() {
         {mensagem && <p className="text-sm mt-3" style={{ color: colors.success }}>{mensagem}</p>}
       </div>
 
-      <div className="rounded-2xl p-6" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
-        <h2 className="font-semibold mb-2" style={{ color: colors.secondary }}>Trocar senha</h2>
-        <p className="text-sm mb-4" style={{ color: colors.textSecondary }}>
-          Se você ainda está usando a senha de primeiro acesso, aproveite pra trocar por uma só sua.
-        </p>
-
-        <label className="block text-sm font-medium mb-1">Nova senha</label>
-        <input
-          type="password"
-          value={novaSenha}
-          onChange={(e) => setNovaSenha(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border text-sm"
-          style={{ borderColor: colors.border }}
-        />
-
-        <label className="block text-sm font-medium mt-3 mb-1">Confirmar nova senha</label>
-        <input
-          type="password"
-          value={confirmarSenha}
-          onChange={(e) => setConfirmarSenha(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border text-sm"
-          style={{ borderColor: colors.border }}
-        />
-
-        <button
-          onClick={handleTrocarSenha}
-          disabled={trocandoSenha}
-          className="mt-3 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-60"
-          style={{ background: colors.primary }}
-        >
-          {trocandoSenha ? 'Salvando...' : 'Trocar senha'}
-        </button>
-
-        {erroSenha && <p className="text-sm mt-3" style={{ color: colors.danger }}>{erroSenha}</p>}
-        {mensagemSenha && <p className="text-sm mt-3" style={{ color: colors.success }}>{mensagemSenha}</p>}
-      </div>
+      <TrocarSenhaCard dica="Se você ainda está usando a senha de primeiro acesso, aproveite pra trocar por uma só sua." />
 
       <div className="rounded-2xl p-6" style={{ background: colors.surface, border: `1px solid ${colors.border}` }}>
         <h2 className="font-semibold mb-2" style={{ color: colors.secondary }}>Seus direitos (LGPD)</h2>

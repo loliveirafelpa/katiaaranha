@@ -151,10 +151,8 @@ export default function AppShell() {
             <nav aria-label="Menu da clínica" className="flex items-center gap-1">
               <LinkMenu to="/app/admin/pacientes" ativo={location.pathname.startsWith('/app/admin/pacientes')} Icone={Users}>Pacientes</LinkMenu>
               <LinkMenu to="/app/admin/exercicios" ativo={location.pathname.startsWith('/app/admin/exercicios')} Icone={Dumbbell}>Exercícios</LinkMenu>
+              <LinkMenu to="/app/admin/minha-conta" ativo={location.pathname.startsWith('/app/admin/minha-conta')} Icone={UserRound}>Minha conta</LinkMenu>
             </nav>
-          )}
-          {perfil.role === 'admin' && (
-            <span className="hidden lg:inline text-xs" style={{ color: colors.textSecondary }}>{perfil.nomeCompleto}</span>
           )}
           <button
             onClick={handleLogout}
