@@ -14,7 +14,7 @@ import { colors, fonts } from '../../../theme'
 const ATALHOS = [
   { to: '/app/diario/nova-entrada/liquido', titulo: 'Bebi algo', dica: 'Água, café, chá, suco…', Icone: GlassWater, cor: colors.secondary },
   { to: '/app/diario/nova-entrada/banheiro', titulo: 'Fui ao banheiro', dica: 'Xixi, cocô ou os dois', Icone: Toilet, cor: colors.primary },
-  { to: '/app/diario/nova-entrada/perda', titulo: 'Tive uma perda', dica: 'Escape de urina', Icone: Droplet, cor: colors.danger },
+  { to: '/app/diario/nova-entrada/perda', titulo: 'Tive um escape', dica: 'Escape de urina', Icone: Droplet, cor: colors.danger },
 ]
 
 function formatarLitros(ml) {
