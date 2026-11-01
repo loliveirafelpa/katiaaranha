@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
+import EsqueciSenhaPage from './pages/EsqueciSenhaPage'
+import RedefinirSenhaPage from './pages/RedefinirSenhaPage'
 import PoliticaPrivacidadePage from './pages/PoliticaPrivacidadePage'
 import NotFoundPage from './pages/NotFoundPage'
 import AppShell from './AppShell'
@@ -24,6 +26,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
       <Route path="/privacidade" element={<PoliticaPrivacidadePage />} />
 
       <Route path="/app" element={<AppShell />}>

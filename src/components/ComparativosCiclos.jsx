@@ -4,19 +4,21 @@ import { calcularIndicadoresCiclo, variacaoPercentual } from '../lib/comparativo
 import ComentariosGrafico from './ComentariosGrafico'
 import { colors } from '../theme'
 
-// melhor: 'menor' | 'maior' | null (null = sem direcao clinica, ex.: liquido ingerido)
+// Sem "melhor"/"pior" de proposito: a mesma direcao pode ser melhora pra uma paciente e
+// piora pra outra (ex.: mais idas ao banheiro e bom pra quem segura o xixi). A tela so diz
+// se aumentou ou diminuiu; a interpretacao e da Dra. Katia.
 const INDICADORES = [
-  { chave: 'perdasDia', label: 'Perdas de urina por dia', melhor: 'menor' },
-  { chave: 'urgenciasDia', label: 'Urgências por dia', melhor: 'menor' },
-  { chave: 'miccoesDia', label: 'Idas ao banheiro (xixi) por dia', melhor: 'menor' },
-  { chave: 'nocturiaNoite', label: 'Xixi à noite (23h–6h) por noite', melhor: 'menor' },
-  { chave: 'volumeMedioMiccaoMl', label: 'Volume médio por xixi', unidade: ' ml', melhor: 'maior' },
-  { chave: 'liquidoDiaMl', label: 'Líquido ingerido por dia', unidade: ' ml', melhor: null },
-  { chave: 'esvaziamentoIncompletoPct', label: 'Xixis sem esvaziar a bexiga', unidade: '%', melhor: 'menor' },
-  { chave: 'gotejamentoPct', label: 'Xixis com gotejamento ao levantar', unidade: '%', melhor: 'menor' },
+  { chave: 'perdasDia', label: 'Perdas de urina por dia' },
+  { chave: 'urgenciasDia', label: 'Urgências por dia' },
+  { chave: 'miccoesDia', label: 'Idas ao banheiro (xixi) por dia' },
+  { chave: 'nocturiaNoite', label: 'Xixi à noite (23h–6h) por noite' },
+  { chave: 'volumeMedioMiccaoMl', label: 'Volume médio por xixi', unidade: ' ml' },
+  { chave: 'liquidoDiaMl', label: 'Líquido ingerido por dia', unidade: ' ml' },
+  { chave: 'esvaziamentoIncompletoPct', label: 'Xixis sem esvaziar a bexiga', unidade: '%' },
+  { chave: 'gotejamentoPct', label: 'Xixis com gotejamento ao levantar', unidade: '%' },
   // Protocolo de urgencia: so aparecem quando algum ciclo comparado tem esses dados
-  { chave: 'urinaFraldaDiaG', label: 'Urina na fralda por dia', unidade: ' g', melhor: 'menor', protocolo: true },
-  { chave: 'trocasFraldaDia', label: 'Trocas de fralda por dia', melhor: 'menor', protocolo: true },
+  { chave: 'urinaFraldaDiaG', label: 'Urina na fralda por dia', unidade: ' g', protocolo: true },
+  { chave: 'trocasFraldaDia', label: 'Trocas de fralda por dia', protocolo: true },
 ]
 const INDICADORES_DESTAQUE = INDICADORES.slice(0, 4)
 
@@ -36,8 +38,9 @@ function dataCurta(iso) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
-// Avalia a variacao do primeiro pro ultimo ciclo: seta + texto (nunca so cor).
-function avaliarVariacao(indicador, inicial, final) {
+// Avalia a variacao do primeiro pro ultimo ciclo: seta + texto. Cor neutra (laranja da
+// marca), sem verde/vermelho, pelo mesmo motivo de nao dizer melhorou/piorou.
+function avaliarVariacao(inicial, final) {
   if (inicial == null || final == null) return { texto: '—', cor: colors.textSecondary }
   const pct = variacaoPercentual(inicial, final)
   if (inicial === final || (pct != null && Math.abs(pct) < 0.5)) {
@@ -45,10 +48,8 @@ function avaliarVariacao(indicador, inicial, final) {
   }
   // Partindo de zero nao existe percentual (ex.: 0 perdas -> 1 perda/dia).
   const texto = pct == null ? '▲ passou a ocorrer' : `${pct < 0 ? '▼' : '▲'} ${Math.abs(pct).toFixed(0)}%`
-  if (!indicador.melhor) return { texto, cor: colors.textSecondary }
-  const subiu = final > inicial
-  const melhorou = indicador.melhor === 'menor' ? !subiu : subiu
-  return { texto, cor: melhorou ? colors.success : colors.danger, rotulo: melhorou ? 'melhorou' : 'piorou' }
+  if (pct == null) return { texto, cor: colors.accent }
+  return { texto, cor: colors.accent, rotulo: final > inicial ? 'aumentou' : 'diminuiu' }
 }
 
 // comentario: chave do grafico pros comentarios internos da Dra. Katia (sem ciclo,
@@ -65,7 +66,7 @@ function Secao({ titulo, subtitulo, comentario, children }) {
 }
 
 function CardEvolucao({ indicador, inicial, final }) {
-  const variacao = avaliarVariacao(indicador, inicial, final)
+  const variacao = avaliarVariacao(inicial, final)
   return (
     <div
       className="rounded-xl p-4 border-t-4"
@@ -326,7 +327,7 @@ export default function ComparativosCiclos({ ciclos }) {
                 <td />
               </tr>
               {indicadoresVisiveis.map((ind) => {
-                const variacao = avaliarVariacao(ind, primeiro.ind[ind.chave], ultimo.ind[ind.chave])
+                const variacao = avaliarVariacao(primeiro.ind[ind.chave], ultimo.ind[ind.chave])
                 return (
                   <tr key={ind.chave} className="border-b" style={{ borderColor: colors.border }}>
                     <td className="px-3 py-2">{ind.label}</td>

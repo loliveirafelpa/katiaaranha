@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { login } from '../lib/authApi'
 import LogoCpa from '../components/brand/LogoCpa'
+import CampoSenha from '../components/CampoSenha'
 import { colors } from '../theme'
 
 export default function LoginPage() {
@@ -52,15 +53,11 @@ export default function LoginPage() {
           style={{ borderColor: colors.border }}
         />
 
-        <label className="block text-sm mb-1">Senha</label>
-        <input
-          type="password"
-          required
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          className="w-full mb-4 px-3 py-2 rounded-lg border outline-none"
-          style={{ borderColor: colors.border }}
-        />
+        <label htmlFor="senha" className="block text-sm mb-1">Senha</label>
+        <CampoSenha id="senha" required value={senha} onChange={(e) => setSenha(e.target.value)} />
+        <p className="text-sm text-right mt-2 mb-4">
+          <Link to="/esqueci-senha" className="underline" style={{ color: colors.primary }}>Esqueci minha senha</Link>
+        </p>
 
         {erro && <p className="text-sm mb-4" style={{ color: colors.danger }}>{erro}</p>}
 

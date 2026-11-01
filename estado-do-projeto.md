@@ -41,7 +41,11 @@ Dois tipos de acesso:
 - **Resumo automático por IA** foi cogitado (a Dra. Kátia teria um resumo gerado automaticamente sobre cada paciente) — decidimos **não fazer isso por enquanto**.
 - Ainda não tem domínio próprio configurado — hoje usa o domínio padrão do Vercel. O site institucional é `www.cpafisio.com.br`; a ideia é usar um subdomínio (ex.: `diario.cpafisio.com.br`) e o site ganhar um botão "Área do Paciente" no canto superior direito apontando para `/login`.
 
+- **E-mail do "Esqueci minha senha" ainda depende de configuração no Supabase:** liberar `/redefinir-senha` em Auth > URL Configuration, traduzir o modelo "Reset Password" e configurar um SMTP próprio (o servidor de e-mail padrão do Supabase só entrega para membros da equipe do projeto e tem limite baixo por hora — as pacientes não receberiam).
+
 ## Trabalho recente (mais a mais recente)
+
+- **Senha e comparativos (01/11/2026).** "Esqueci minha senha" no login (link por e-mail → tela de criar senha nova), botão "Mostrar/Ocultar" em todos os campos de senha (público mais velho), e Comparativos do admin dizendo só "aumentou/diminuiu" em cor neutra, em vez de "melhorou/piorou" em verde/vermelho — se é melhora ou piora depende da paciente.
 
 - **Correção da troca de conta na mesma aba (01/11/2026).** Antes, ao sair e entrar com outra conta sem recarregar, o cabeçalho podia ficar com o perfil da conta anterior. Agora o "Sair" recarrega a página inteira, e o `AppShell` só aceita a carga de perfil mais recente e limpa a tela quando o usuário da sessão muda.
 

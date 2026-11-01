@@ -44,6 +44,15 @@ export async function getPerfilAtual() {
   }
 }
 
+// Manda o e-mail com o link de "Esqueci minha senha". O link volta pra /redefinir-senha
+// deste mesmo endereco (precisa estar liberado em Auth > URL Configuration no Supabase).
+export async function enviarLinkRedefinicaoSenha(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/redefinir-senha`,
+  })
+  if (error) throw error
+}
+
 export async function trocarSenha(novaSenha) {
   const { error } = await supabase.auth.updateUser({ password: novaSenha })
   if (error) throw error
