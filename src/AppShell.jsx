@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Navigate, Outlet, useLocation, useNavigate, Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Navigate, Outlet, useLocation, Link } from 'react-router-dom'
 import { supabase } from './lib/supabaseClient'
 import { getPerfilAtual, logout } from './lib/authApi'
 import { obterConsentimentoAtual } from './lib/consentimentosApi'
@@ -33,39 +33,66 @@ export default function AppShell() {
   const [cicloSelecionadoId, setCicloSelecionadoId] = useState(null)
   const [versaoCiclos, setVersaoCiclos] = useState(0)
   const location = useLocation()
-  const navigate = useNavigate()
+  // Id do perfil hoje na tela e numero da ultima carga disparada. Toda troca de rota e todo
+  // evento de login/logout disparam uma carga nova; so a mais recente pode mexer no estado,
+  // senao uma resposta atrasada da conta anterior sobrescreve a conta que acabou de entrar.
+  const perfilIdRef = useRef(null)
+  const ultimaCargaRef = useRef(0)
 
   useEffect(() => {
     let ativo = true
 
     async function carregar() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        if (ativo) {
+      const carga = ++ultimaCargaRef.current
+      const valida = () => ativo && carga === ultimaCargaRef.current
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!valida()) return
+
+        // Trocou de conta (ou saiu): nada da conta anterior pode continuar na tela enquanto
+        // a nova carrega.
+        const userId = session?.user?.id ?? null
+        if (userId !== perfilIdRef.current) {
+          perfilIdRef.current = null
           setPerfil(null)
-          setCarregando(false)
+          setCarregando(true)
         }
-        return
+        if (!session) {
+          setCarregando(false)
+          return
+        }
+
+        const perfilAtual = await getPerfilAtual()
+        if (!valida()) return
+
+        let consentimentoValido = true
+        if (perfilAtual?.role === 'paciente') {
+          const consentimento = await obterConsentimentoAtual(perfilAtual.id)
+          consentimentoValido = !!consentimento?.aceito
+        }
+
+        if (!valida()) return
+        perfilIdRef.current = perfilAtual?.id ?? null
+        setPerfil(perfilAtual)
+        setConsentimentoOk(consentimentoValido)
+        setCarregando(false)
+      } catch {
+        // Na duvida, melhor mandar pro login do que mostrar o perfil de outra pessoa.
+        if (!valida()) return
+        perfilIdRef.current = null
+        setPerfil(null)
+        setCarregando(false)
       }
-
-      const perfilAtual = await getPerfilAtual()
-      if (!ativo) return
-
-      let consentimentoValido = true
-      if (perfilAtual?.role === 'paciente') {
-        const consentimento = await obterConsentimentoAtual(perfilAtual.id)
-        consentimentoValido = !!consentimento?.aceito
-      }
-
-      if (!ativo) return
-      setPerfil(perfilAtual)
-      setConsentimentoOk(consentimentoValido)
-      setCarregando(false)
     }
 
     carregar()
 
-    const { data: listener } = supabase.auth.onAuthStateChange(() => carregar())
+    // INITIAL_SESSION ja e coberto pela chamada acima. O setTimeout tira a carga de dentro
+    // do callback: o supabase-js orienta nao chamar o proprio Supabase ali (pode travar).
+    const { data: listener } = supabase.auth.onAuthStateChange((evento) => {
+      if (evento !== 'INITIAL_SESSION') setTimeout(carregar, 0)
+    })
     return () => {
       ativo = false
       listener.subscription.unsubscribe()
@@ -109,7 +136,9 @@ export default function AppShell() {
 
   async function handleLogout() {
     await logout()
-    navigate('/login')
+    // Recarrega a pagina inteira em vez de navegar: garante que nenhum estado da conta que
+    // saiu (perfil, ciclos, telas abertas) sobreviva para o proximo login na mesma aba.
+    window.location.replace('/login')
   }
 
   const cicloSelecionado = ciclosPaciente.find((c) => c.id === cicloSelecionadoId) || null

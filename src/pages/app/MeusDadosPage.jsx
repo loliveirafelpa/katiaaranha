@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useOutletContext } from 'react-router-dom'
 import { atualizarMeuPerfil } from '../../lib/perfisApi'
 import { revogarConsentimento } from '../../lib/consentimentosApi'
 import { solicitarExclusaoPaciente } from '../../lib/pacientesApi'
@@ -10,7 +10,6 @@ import { colors } from '../../theme'
 
 export default function MeusDadosPage() {
   const { perfil } = useOutletContext()
-  const navigate = useNavigate()
   const [contato, setContato] = useState(perfil.contato || '')
   const [salvando, setSalvando] = useState(false)
   const [mensagem, setMensagem] = useState('')
@@ -39,7 +38,8 @@ export default function MeusDadosPage() {
     try {
       await solicitarExclusaoPaciente(perfil.id)
       await logout()
-      navigate('/', { replace: true })
+      // Recarga completa, igual ao "Sair" do cabecalho: nada da conta apagada fica na memoria.
+      window.location.replace('/')
     } finally {
       setExcluindo(false)
     }

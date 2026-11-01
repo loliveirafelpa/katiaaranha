@@ -36,13 +36,14 @@ Dois tipos de acesso:
 
 ## O que falta / decisões em aberto
 
-- **Bug de troca de conta na mesma aba.** Se alguém sai (logout) e loga com outra conta sem recarregar a página, o cabeçalho às vezes fica preso mostrando o nome/perfil da conta anterior (ex.: continua mostrando "Dra. Kátia Aranha · Admin" mesmo já logado como paciente). Confirmado em produção em 17/09/2026. Abrir uma aba nova (ou dar F5) entre um login e outro evita o problema — é o que orientamos pra demonstração pra Dra. Kátia. A causa provável está no carregamento do perfil em `src/AppShell.jsx`. Ainda não investigado/corrigido a fundo.
 - **Prazo de retenção do dado.** Precisa decidir com a Dra. Kátia: depois que uma paciente para de usar o sistema, por quanto tempo o dado dela fica guardado? Isso ainda não está definido nem aplicado.
 - **Exportar dados.** A paciente ainda não tem um botão pra baixar/exportar os próprios dados (só ver, corrigir contato e apagar a conta).
 - **Resumo automático por IA** foi cogitado (a Dra. Kátia teria um resumo gerado automaticamente sobre cada paciente) — decidimos **não fazer isso por enquanto**.
-- Ainda não tem domínio próprio configurado (algo como `diario.cpafisio.com.br`) — hoje usa o domínio padrão do Vercel.
+- Ainda não tem domínio próprio configurado — hoje usa o domínio padrão do Vercel. O site institucional é `www.cpafisio.com.br`; a ideia é usar um subdomínio (ex.: `diario.cpafisio.com.br`) e o site ganhar um botão "Área do Paciente" no canto superior direito apontando para `/login`.
 
 ## Trabalho recente (mais a mais recente)
+
+- **Correção da troca de conta na mesma aba (01/11/2026).** Antes, ao sair e entrar com outra conta sem recarregar, o cabeçalho podia ficar com o perfil da conta anterior. Agora o "Sair" recarrega a página inteira, e o `AppShell` só aceita a carga de perfil mais recente e limpa a tela quando o usuário da sessão muda.
 
 - **Rodada de ajustes de 12/10/2026:**
   - Serviços do cadastro reduzidos a Gestante, Pós parto, Incontinência Urinária, Pós operatório e Pilates; nova tela "Editar cadastro".
