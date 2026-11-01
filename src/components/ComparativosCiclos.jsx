@@ -38,8 +38,8 @@ function dataCurta(iso) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
-// Avalia a variacao do primeiro pro ultimo ciclo: seta + texto. Cor neutra (laranja da
-// marca), sem verde/vermelho, pelo mesmo motivo de nao dizer melhorou/piorou.
+// Avalia a variacao do primeiro pro ultimo ciclo: seta + texto. Diminuiu em verde e
+// aumentou em laranja (pedido da Dra. Katia) - sem vermelho, pra nao ler como "piorou".
 function avaliarVariacao(inicial, final) {
   if (inicial == null || final == null) return { texto: '—', cor: colors.textSecondary }
   const pct = variacaoPercentual(inicial, final)
@@ -49,7 +49,8 @@ function avaliarVariacao(inicial, final) {
   // Partindo de zero nao existe percentual (ex.: 0 perdas -> 1 perda/dia).
   const texto = pct == null ? '▲ passou a ocorrer' : `${pct < 0 ? '▼' : '▲'} ${Math.abs(pct).toFixed(0)}%`
   if (pct == null) return { texto, cor: colors.accent }
-  return { texto, cor: colors.accent, rotulo: final > inicial ? 'aumentou' : 'diminuiu' }
+  const subiu = final > inicial
+  return { texto, cor: subiu ? colors.accent : colors.success, rotulo: subiu ? 'aumentou' : 'diminuiu' }
 }
 
 // comentario: chave do grafico pros comentarios internos da Dra. Katia (sem ciclo,
